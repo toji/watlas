@@ -59,12 +59,12 @@ UvMeshBufferInfo createUvMesh(int vertexCount, int indexCount) {
   return uvMeshBufferInfo;
 }
 
-xatlas::AddMeshError::Enum addMesh() {
-  return xatlas::AddMesh(atlas, *meshDecl);
+uint32_t addMesh() {
+  return (uint32_t)xatlas::AddMesh(atlas, *meshDecl);
 }
 
-xatlas::AddMeshError::Enum addUvMesh() {
-  return xatlas::AddUvMesh(atlas, *uvMeshDecl);
+uint32_t addUvMesh() {
+  return (uint32_t)xatlas::AddUvMesh(atlas, *uvMeshDecl);
 }
 
 void generateAtlas() {
@@ -74,14 +74,14 @@ void generateAtlas() {
 AtlasMeshBufferInfo getMeshData(uint32_t meshId) {
   const xatlas::Mesh &mesh = atlas->meshes[meshId];
 
-  uint16_t* originalIndexArray = new uint16_t[mesh.vertexCount];
+  uint32_t* originalIndexArray = new uint32_t[mesh.vertexCount];
   float* uvArray = new float[mesh.vertexCount * 2];
 
-  for (uint16_t i = 0; i < mesh.vertexCount; i++) {
+  for (uint32_t i = 0; i < mesh.vertexCount; i++) {
     const xatlas::Vertex &vertex = mesh.vertexArray[i];
     originalIndexArray[i] = vertex.xref;
-    uvArray[i * 2] = vertex.uv[0];
-    uvArray[i * 2 + 1] = vertex.uv[1];
+    uvArray[i * 2] = vertex.uv[0] / atlas->width;
+    uvArray[i * 2 + 1] = vertex.uv[1] / atlas->height;
   }
 
   AtlasMeshBufferInfo atlasMeshBufferInfo;
@@ -89,8 +89,8 @@ AtlasMeshBufferInfo getMeshData(uint32_t meshId) {
   atlasMeshBufferInfo.newVertexCount = mesh.vertexCount;
   atlasMeshBufferInfo.newIndexCount = mesh.indexCount;
   atlasMeshBufferInfo.indexOffset = (uint32_t)mesh.indexArray;
-  atlasMeshBufferInfo.originalIndexOffset = (uint32_t)&originalIndexArray;
-  atlasMeshBufferInfo.uvOffset = (uint32_t)&uvArray;
+  atlasMeshBufferInfo.originalIndexOffset = (uint32_t)originalIndexArray;
+  atlasMeshBufferInfo.uvOffset = (uint32_t)uvArray;
 
   return atlasMeshBufferInfo;
 }
@@ -114,7 +114,7 @@ EMSCRIPTEN_BINDINGS(xatlas) {
       .field("uvOffset", &UvMeshBufferInfo::uvOffset);
 
     emscripten::value_object<AtlasMeshBufferInfo>("AtlasMeshBufferInfo")
-      .field("newVextexCount", &AtlasMeshBufferInfo::newVertexCount)
+      .field("newVertexCount", &AtlasMeshBufferInfo::newVertexCount)
       .field("newIndexCount", &AtlasMeshBufferInfo::newIndexCount)
       .field("indexOffset", &AtlasMeshBufferInfo::indexOffset)
       .field("originalIndexOffset", &AtlasMeshBufferInfo::originalIndexOffset)

@@ -2,7 +2,6 @@
   "name": "xatlas-web",
   "version": "1.0.0",
   "main": "dist/xatlas-web.js",
-  "module": "dist/xatlas-web.js",
   "files": [
     "dist/"
   ],

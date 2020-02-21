@@ -3306,8 +3306,11 @@ class TaskScheduler
 public:
 	~TaskScheduler()
 	{
-		for (uint32_t i = 0; i < m_groups.size(); i++)
-			destroyGroup({ i });
+		for (uint32_t i = 0; i < m_groups.size(); i++) {
+			TaskGroupHandle handle;
+			handle.value = i;
+			destroyGroup(handle);
+		}
 	}
 
 	uint32_t threadCount() const

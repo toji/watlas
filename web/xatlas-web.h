@@ -33,9 +33,9 @@ extern MeshBufferInfo createMesh(uint32_t vertexCount, uint32_t indexCount, bool
 
 extern UvMeshBufferInfo createUvMesh(int vertexCount, int indexCount);
 
-extern xatlas::AddMeshError::Enum addMesh();
+extern uint32_t addMesh();
 
-extern xatlas::AddMeshError::Enum addUvMesh();
+extern uint32_t addUvMesh();
 
 extern void generateAtlas();
 

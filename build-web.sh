@@ -13,13 +13,17 @@ echo "============================================="
 (
   # Compile C/C++ code
   emcc \
+    -std=c++11 \
+    -DXA_MULTITHREADED=0 \
+    -DNDEBUG \
     ${OPTIMIZE} \
     --bind \
     -s STRICT=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MALLOC=emmalloc \
     -s MODULARIZE=1 \
-    -s EXPORT_ES6=1 \
+    -s ENVIRONMENT='web,worker' \
+    -s ASSERTIONS=1 \
     --post-js './web/module-post.js' \
     -o ./xatlas-web.js \
     web/*.cpp \
