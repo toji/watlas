@@ -1,0 +1,15 @@
+{
+  "name": "xatlas-web",
+  "version": "1.0.0",
+  "main": "dist/xatlas-web.js",
+  "module": "dist/xatlas-web.js",
+  "files": [
+    "dist/"
+  ],
+  "repository": "https://github.com/mozillareality/xatlas-web.git",
+  "author": "Robert Long <robert@robertlong.me>",
+  "license": "MIT",
+  "scripts": {
+    "build": "docker run --rm -v `pwd`:`pwd` -w `pwd` -u $(id -u):$(id -g) trzeci/emscripten ./build-web.sh"
+  }
+}
