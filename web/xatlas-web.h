@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <emscripten/bind.h>
-#include "../xatlas.h"
+#include "../source/xatlas/xatlas.h"
 
 struct MeshBufferInfo {
   uint32_t meshId;

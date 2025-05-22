@@ -9,6 +9,6 @@
   "author": "Robert Long <robert@robertlong.me>",
   "license": "MIT",
   "scripts": {
-    "build": "docker run --rm -v `pwd`:`pwd` -w `pwd` -u $(id -u):$(id -g) trzeci/emscripten ./build-web.sh"
+    "build": "./build-web.sh"
   }
 }
