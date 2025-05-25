@@ -11,6 +11,9 @@ echo "============================================="
 echo "Compiling wasm bindings"
 echo "============================================="
 (
+  # Create output folder
+  mkdir -p dist
+
   # Compile C/C++ code
   em++ \
     -std=c++17 \
@@ -24,17 +27,15 @@ echo "============================================="
     -s MODULARIZE=1 \
     -s ENVIRONMENT='web,worker' \
     -s ASSERTIONS=1 \
-    -o ./xatlas-web.js \
+    -o ./dist/watlas.js \
     web/*.cpp \
     source/xatlas/xatlas.cpp
 
   # ${OPTIMIZE} \
   #--post-js './web/module-post.js' \
 
-  # Create output folder
-  mkdir -p dist
   # Move artifacts
-  mv xatlas-web.{js,wasm} dist
+  #mv watlas-web.{js,wasm} dist
 )
 echo "============================================="
 echo "Compiling wasm bindings done"

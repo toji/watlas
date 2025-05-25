@@ -1,12 +1,12 @@
 {
-  "name": "xatlas-web",
-  "version": "1.0.0",
-  "main": "dist/xatlas-web.js",
+  "name": "watlas",
+  "version": "0.1.0",
+  "main": "dist/watlas.js",
   "files": [
     "dist/"
   ],
-  "repository": "https://github.com/mozillareality/xatlas-web.git",
-  "author": "Robert Long <robert@robertlong.me>",
+  "repository": "https://github.com/toji/watlas.git",
+  "author": "Brandon Jones <tojiro@gmail.com>",
   "license": "MIT",
   "scripts": {
     "build": "./build-web.sh"

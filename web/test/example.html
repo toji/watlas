@@ -1,0 +1,14 @@
+<html>
+  <body>
+    <script type='module'>
+      import * as WAtlasModule from '../../dist/watlas.js';
+
+      const WAtlasModulePromise = WAtlasModule.ready();
+      const WAtlas = WAtlasModulePromise();
+
+      const atlas = new WAtlas();
+
+      const result = atlas.getResult();
+    </script>
+  </body>
+</html>
