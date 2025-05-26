@@ -21,12 +21,15 @@ echo "============================================="
     -DNDEBUG \
     --bind \
     --no-entry \
+    -s WASM=1 \
     -s STRICT=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MALLOC=emmalloc \
+    -s EXPORT_ES6=1 \
     -s MODULARIZE=1 \
     -s ENVIRONMENT='web,worker' \
     -s ASSERTIONS=1 \
+    -s NO_DISABLE_EXCEPTION_CATCHING \
     -o ./dist/watlas.js \
     web/*.cpp \
     source/xatlas/xatlas.cpp

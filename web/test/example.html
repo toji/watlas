@@ -1,14 +1,43 @@
 <html>
   <body>
     <script type='module'>
-      import * as WAtlasModule from '../../dist/watlas.js';
+      import { default as WAtlasLoader } from '../../dist/watlas.js';
 
-      const WAtlasModulePromise = WAtlasModule.ready();
-      const WAtlas = WAtlasModulePromise();
+      const WAtlasModule = await WAtlasLoader();
+      const WAtlas = WAtlasModule.WAtlas;
 
       const atlas = new WAtlas();
 
+      const verts = new Float32Array([
+        0, 1, 2,
+        3, 4, 5,
+        6, 7, 8
+      ]);
+
+      const indices = new Uint16Array([
+        0, 1, 2,
+      ]);
+
+      const err = atlas.addMesh({
+        vertexPositionData: verts,
+        vertexCount: 3,
+        vertexPositionStride: 12,
+        indexData: indices,
+        indexCount: 3,
+        indexFormat: 'UInt16'
+      });
+
+      atlas.computeCharts({
+        maxChartArea: 256
+      });
+      atlas.packCharts({
+        padding: 1,
+        bilinear: false,
+      });
+
       const result = atlas.getResult();
+
+      console.log(result);
     </script>
   </body>
 </html>
