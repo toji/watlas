@@ -171,6 +171,55 @@ void WAtlas::generate(WChartOptions chartOptions, WPackOptions packOptions) {
 WAtlasResult WAtlas::getResult() {
   WAtlasResult result;
 
+  for (uint32_t i = 0; i < atlas->meshCount; ++i) {
+    const xatlas::Mesh* atlasMesh = &(atlas->meshes[i]);
+
+    WMesh mesh;
+
+    for (uint32_t j = 0; j < atlasMesh->chartCount; ++j) {
+      const xatlas::Chart* meshChart = &(atlasMesh->chartArray[j]);
+
+      WChart chart;
+      chart.faceArray = emscripten::val(
+        emscripten::typed_memory_view(meshChart->faceCount, meshChart->faceArray)
+      );
+      chart.atlasIndex = meshChart->atlasIndex;
+      chart.faceCount = meshChart->faceCount;
+      chart.type = meshChart->type;
+      chart.material = meshChart->material;
+
+      mesh.chartArray.push_back(chart);
+    }
+
+    mesh.indexArray = emscripten::val(
+      emscripten::typed_memory_view(atlasMesh->indexCount, atlasMesh->indexArray)
+    );
+
+    for (uint32_t j = 0; j < atlasMesh->vertexCount; ++j) {
+      const xatlas::Vertex* meshVertex = &(atlasMesh->vertexArray[j]);
+
+      WVertex vertex;
+      vertex.atlasIndex = meshVertex->atlasIndex;
+      vertex.chartIndex = meshVertex->chartIndex;
+      vertex.uv[0] = meshVertex->uv[0];
+      vertex.uv[1] = meshVertex->uv[1];
+      vertex.xref = meshVertex->xref;
+
+      mesh.vertexArray.push_back(vertex);
+    }
+
+    mesh.chartCount = atlasMesh->chartCount;
+    mesh.indexCount = atlasMesh->indexCount;
+    mesh.vertexCount = atlasMesh->vertexCount;
+
+    result.meshes.push_back(mesh);
+  }
+
+
+  result.utilization = emscripten::val(
+    emscripten::typed_memory_view(atlas->atlasCount, atlas->utilization)
+  );
+
   result.width = atlas->width;
   result.height = atlas->height;
   result.atlasCount = atlas->atlasCount;
@@ -189,7 +238,43 @@ EMSCRIPTEN_BINDINGS(watlas) {
     emscripten::register_optional<xatlas::IndexFormat>();
     emscripten::register_optional<emscripten::val>();
 
+    emscripten::register_vector<WVertex>("WVertexVector");
+    emscripten::register_vector<WMesh>("WMeshVector");
+
+    emscripten::enum_<xatlas::ChartType>("WChartType")
+      .value("Planar", xatlas::ChartType::Planar)
+      .value("Ortho", xatlas::ChartType::Ortho)
+      .value("LSCM", xatlas::ChartType::LSCM)
+      .value("Piecewise", xatlas::ChartType::Piecewise)
+      .value("Invalid", xatlas::ChartType::Invalid);
+
+    emscripten::value_object<WChart>("WChart")
+      .field("faceArray", &WChart::faceArray)
+      .field("atlasIndex", &WChart::atlasIndex)
+      .field("faceCount", &WChart::faceCount)
+      .field("type", &WChart::type)
+      .field("material", &WChart::material);
+
+    emscripten::value_array<std::array<float, 2>>("WUv")
+      .element(emscripten::index<0>())
+      .element(emscripten::index<1>());
+
+    emscripten::value_object<WVertex>("WVertex")
+      .field("atlasIndex", &WVertex::atlasIndex)
+      .field("chartIndex", &WVertex::chartIndex)
+      .field("uv", &WVertex::uv)
+      .field("xref", &WVertex::xref);
+
+    emscripten::value_object<WMesh>("WMesh")
+      .field("indexArray", &WMesh::indexArray)
+      .field("vertexArray", &WMesh::vertexArray)
+      .field("chartCount", &WMesh::chartCount)
+      .field("indexCount", &WMesh::indexCount)
+      .field("vertexCount", &WMesh::vertexCount);
+
     emscripten::value_object<WAtlasResult>("WAtlasResult")
+      .field("meshes", &WAtlasResult::meshes)
+      .field("utilization", &WAtlasResult::utilization)
       .field("width", &WAtlasResult::width)
       .field("height", &WAtlasResult::height)
       .field("atlasCount", &WAtlasResult::atlasCount)
