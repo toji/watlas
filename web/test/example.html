@@ -1,14 +1,182 @@
 <html>
   <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../../node_modules/three/build/three.module.js",
+          "three/addons/": "../../node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+
     <script type='module'>
       import { default as WAtlasLoader } from '../../dist/watlas.js';
+      
+      import * as THREE from 'three';
+
+      import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+      let camera, scene, renderer;
+
+      let object;
+      let texture;
+
+      function initScene() {
+        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 20 );
+        camera.position.z = 2.5;
+
+        // scene
+
+        scene = new THREE.Scene();
+
+        const ambientLight = new THREE.AmbientLight( 0xffffff );
+        scene.add( ambientLight );
+
+        const pointLight = new THREE.PointLight( 0xffffff, 15 );
+        camera.add( pointLight );
+        scene.add( camera );
+
+        // manager
+
+        function loadModel() {
+          object.traverse( function ( child ) {
+            if (child.isMesh) { 
+              child.material.map = texture;
+              onBufferGeometryLoaded(child.geometry);
+            }
+          });
+
+          object.position.x = -0.75;
+          object.position.z = -1.75;
+          object.scale.setScalar( 0.25 );
+          scene.add( object );
+
+          render();
+        }
+
+        const manager = new THREE.LoadingManager( loadModel );
+
+        // texture
+
+        const textureLoader = new THREE.TextureLoader( manager );
+        texture = textureLoader.load( '../../models/uv-test.png', render );
+        texture.colorSpace = THREE.SRGBColorSpace;
+
+        // model
+
+        function onProgress( xhr ) {
+          if (xhr.lengthComputable) {
+            const percentComplete = xhr.loaded / xhr.total * 100;
+            console.log( 'model ' + percentComplete.toFixed( 2 ) + '% downloaded' );
+          }
+        }
+
+        function onError() {}
+
+        const loader = new OBJLoader( manager );
+        loader.load( '../../models/gazebo.obj', (obj) => {
+          object = obj;
+          console.log(obj);
+        }, onProgress, onError);
+
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        onWindowResize();
+        document.body.appendChild( renderer.domElement );
+
+        const controls = new OrbitControls( camera, renderer.domElement );
+        controls.minDistance = 2;
+        controls.maxDistance = 5;
+        controls.addEventListener( 'change', render );
+
+        window.addEventListener( 'resize', onWindowResize );
+      }
+
+      function onWindowResize() {
+        const height = window.innerHeight / 2;
+        camera.aspect = window.innerWidth / height;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, height );
+        render();
+      }
+
+      function render() {
+        renderer.render( scene, camera );
+      }
 
       const WAtlasModule = await WAtlasLoader();
       const WAtlas = WAtlasModule.WAtlas;
 
       const atlas = new WAtlas();
 
-      const verts = new Float32Array([
+      function onBufferGeometryLoaded(geometry) {
+        const err = atlas.addMesh({
+          vertexCount: geometry.attributes.position.count,
+          vertexPositionData: geometry.attributes.position.array,
+          vertexPositionStride: 12,
+          vertexNormalData: geometry.attributes.normal.array,
+          vertexNormalStride: 12,
+          /*indexData: indices,
+          indexCount: 3,
+          indexFormat: 'UInt16'*/
+        });
+
+        atlas.generate({}, {});
+
+        const result = atlas.getResult();
+
+        const mesh = result.meshes.get(0);
+
+        const attribArrays = [];
+        for (const attribName in geometry.attributes) {
+          const attrib = geometry.attributes[attribName];
+          attribArrays.push({
+            name: attribName,
+            source: attrib.array,
+            array: new Float32Array(mesh.vertexCount * attrib.itemSize),
+            stride: attrib.itemSize,
+          });
+        }
+
+        const uvArray = new Float32Array(mesh.vertexCount * 2);
+
+        for (let i = 0; i < mesh.vertexCount; ++i) {
+          const vertex = mesh.vertexArray.get(i);
+          uvArray[(i*2) + 0] = vertex.uv[0] / result.width;
+          uvArray[(i*2) + 1] = vertex.uv[1] / result.height;
+
+          for (const attrib of attribArrays) {
+            for (let j = 0; j < attrib.stride; ++j) {
+              attrib.array[(i * attrib.stride) + j] = attrib.source[(vertex.xref * attrib.stride) + j];
+            }
+          }
+        }
+
+        const newGeom = new THREE.BufferGeometry();
+
+        for (const attrib of attribArrays) {
+          newGeom.setAttribute(attrib.name, new THREE.BufferAttribute(attrib.array, attrib.stride));
+        }
+
+        newGeom.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
+        newGeom.setIndex(new THREE.BufferAttribute(mesh.indexArray, 1));
+
+        const material = new THREE.MeshBasicMaterial( { map: texture } );
+        const threeMesh = new THREE.Mesh( newGeom, material );
+
+        threeMesh.position.x = -0.75;
+        threeMesh.scale.setScalar( 0.25 );
+
+        scene.add(threeMesh);
+
+        console.log(result);
+      }
+
+      initScene();
+
+      /*const verts = new Float32Array([
         0, 1, 2,
         3, 4, 5,
         6, 7, 8
@@ -39,7 +207,7 @@
 
       console.log(result);
 
-      atlas.delete();
+      atlas.delete();*/
     </script>
   </body>
 </html>

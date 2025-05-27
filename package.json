@@ -10,5 +10,8 @@
   "license": "MIT",
   "scripts": {
     "build": "./build-web.sh"
+  },
+  "devDependencies": {
+    "three": "^0.176.0"
   }
 }
