@@ -4,6 +4,27 @@
       html, body {
         margin: 0;
       }
+
+      body {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .settings {
+        flex-grow: 1;
+      }
+
+      .output {
+        display: flex;
+        flex-grow: 2;
+        flex-direction: column;
+      }
+
+      .output canvas {
+        flex-grow: 1;
+        max-width: 100%;
+        max-height: 50%;
+      }
     </style>
   </head>
   <body>
@@ -16,9 +37,17 @@
       }
     </script>
 
-    <canvas id='uv-map'></canvas>
+    <div class='settings' id='settings-pane'>
+      
+    </div>
+    <div class='output' id='output-canvases'>
+      <canvas id='uv-map'></canvas>
+      <canvas id='three-canvas'></canvas>
+    </div>
 
     <script type='module'>
+      import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
+
       import { default as WAtlasLoader } from '../../dist/watlas.js';
       
       import * as THREE from 'three';
@@ -33,6 +62,78 @@
 
       let uvMap = document.getElementById('uv-map');
       let ctx = uvMap.getContext('2d');
+
+      let threeCanvas = document.getElementById('three-canvas');
+
+      let geometry, threeMesh;
+
+      const chartOptions = {
+        maxChartArea: 0.0,
+        maxBoundaryLength: 0.0,
+        normalDeviationWeight: 2.0,
+        roundnessWeight: 0.01,
+        straightnessWeight: 6.0,
+        normalSeamWeight: 4.0,
+        textureSeamWeight: 0.5,
+        maxCost: 2.0,
+        maxIterations: 1,
+
+        useInputMeshUvs: false,
+        fixWinding: false,
+      };
+
+      const packOptions = {
+        maxChartSize: 0,
+        padding: 0,
+        texelsPerUnit: 0,
+        resolution: 0,
+        bilinear: true,
+        blockAlign: false,
+        bruteForce: false,
+        rotateChartsToAxis: true,
+        rotateCharts: true
+      };
+      
+      const pane = new Pane({
+        container: document.getElementById('settings-pane'),
+      });
+
+      const chart = pane.addFolder({
+        title: 'Chart Options',
+        expanded: true,
+      });
+      chart.addBinding(chartOptions, 'maxChartArea');
+      chart.addBinding(chartOptions, 'maxBoundaryLength');
+      chart.addBinding(chartOptions, 'normalDeviationWeight');
+      chart.addBinding(chartOptions, 'roundnessWeight');
+      chart.addBinding(chartOptions, 'straightnessWeight');
+      chart.addBinding(chartOptions, 'normalSeamWeight');
+      chart.addBinding(chartOptions, 'textureSeamWeight');
+      chart.addBinding(chartOptions, 'maxCost');
+      chart.addBinding(chartOptions, 'maxIterations');
+      chart.addBinding(chartOptions, 'useInputMeshUvs');
+      chart.addBinding(chartOptions, 'fixWinding');
+
+      const pack = pane.addFolder({
+        title: 'Pack Options',
+        expanded: true,
+      });
+      pack.addBinding(packOptions, 'maxChartSize');
+      pack.addBinding(packOptions, 'padding');
+      pack.addBinding(packOptions, 'texelsPerUnit');
+      pack.addBinding(packOptions, 'resolution');
+      pack.addBinding(packOptions, 'bilinear');
+      pack.addBinding(packOptions, 'blockAlign');
+      pack.addBinding(packOptions, 'bruteForce');
+      pack.addBinding(packOptions, 'rotateChartsToAxis');
+      pack.addBinding(packOptions, 'rotateCharts');
+
+      const btn = pane.addButton({
+        title: 'Update',
+      });
+      btn.on('click', () => {
+        updateAtlas();
+      });
 
       function initScene() {
         camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 20 );
@@ -54,15 +155,9 @@
         function loadModel() {
           object.traverse( function ( child ) {
             if (child.isMesh) { 
-              child.material.map = texture;
               onBufferGeometryLoaded(child.geometry);
             }
           });
-
-          object.position.x = -0.75;
-          object.position.z = -1.75;
-          object.scale.setScalar( 0.25 );
-          scene.add( object );
 
           render();
         }
@@ -92,10 +187,12 @@
           console.log(obj);
         }, onProgress, onError);
 
-        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          canvas: threeCanvas
+        });
         renderer.setPixelRatio( window.devicePixelRatio );
         onWindowResize();
-        document.body.appendChild( renderer.domElement );
 
         const controls = new OrbitControls( camera, renderer.domElement );
         controls.minDistance = 2;
@@ -106,14 +203,13 @@
       }
 
       function onWindowResize() {
-        const height = window.innerHeight / 2;
-        camera.aspect = window.innerWidth / height;
+        camera.aspect = threeCanvas.clientWidth/threeCanvas.clientHeight;
         camera.updateProjectionMatrix();
 
-        uvMap.width = window.innerWidth;
-        uvMap.height = height;
+        uvMap.width = uvMap.clientWidth * devicePixelRatio;
+        uvMap.height = uvMap.clientHeight * devicePixelRatio;
 
-        renderer.setSize( window.innerWidth, height );
+        renderer.setSize( threeCanvas.clientWidth, threeCanvas.clientHeight );
         render();
       }
 
@@ -126,7 +222,8 @@
 
       const atlas = new WAtlas();
 
-      function onBufferGeometryLoaded(geometry) {
+      function onBufferGeometryLoaded(meshGeom) {
+        geometry = meshGeom;
         const err = atlas.addMesh({
           vertexCount: geometry.attributes.position.count,
           vertexPositionData: geometry.attributes.position.array,
@@ -138,7 +235,11 @@
           indexFormat: 'UInt16'*/
         });
 
-        atlas.generate({}, {});
+        updateAtlas();
+      }
+
+      function updateAtlas() {
+        atlas.generate(chartOptions, packOptions);
 
         const result = atlas.getResult();
 
@@ -171,28 +272,6 @@
           }
         }
 
-        // Draw the UV layout
-        ctx.fillStyle = '#222222';
-        ctx.fillRect(0, 0, uvMap.width, uvMap.height);
-        ctx.strokeStyle = '#dddddd';
-
-        for (let i = 0; i < mesh.indexCount; i+=3) {
-          ctx.beginPath();
-          for (let j = 0; j < 3; ++j) {
-            const index = mesh.indexArray[i+j];
-            const vertex = mesh.vertexArray.get(index);
-            const u = vertex.uv[0] / result.width;
-            const v = vertex.uv[1] / result.height;
-            if (j == 0) {
-              ctx.moveTo(u*uvMap.width, v*uvMap.height);
-            } else {
-              ctx.lineTo(u*uvMap.width, v*uvMap.height);
-            }
-          }
-          ctx.closePath();
-          ctx.stroke();
-        }
-
         const newGeom = new THREE.BufferGeometry();
 
         for (const attrib of attribArrays) {
@@ -203,50 +282,52 @@
         newGeom.setIndex(new THREE.BufferAttribute(mesh.indexArray, 1));
 
         const material = new THREE.MeshBasicMaterial( { map: texture } );
-        const threeMesh = new THREE.Mesh( newGeom, material );
+
+        if (threeMesh) {
+          scene.remove(threeMesh);
+        }
+
+        threeMesh = new THREE.Mesh( newGeom, material );
 
         threeMesh.position.x = -0.75;
         threeMesh.scale.setScalar( 0.25 );
 
         scene.add(threeMesh);
+        render();
+        drawUVs(result);
 
-        console.log(result);
+        //console.log(result);
+      }
+
+      function drawUVs(result) {
+        // Draw the UV layout
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(0, 0, uvMap.width, uvMap.height);
+        ctx.strokeStyle = '#dddddd';
+
+        for (let meshIndex = 0; meshIndex < result.meshCount; ++meshIndex) {
+          const mesh = result.meshes.get(meshIndex);
+
+          for (let i = 0; i < mesh.indexCount; i+=3) {
+            ctx.beginPath();
+            for (let j = 0; j < 3; ++j) {
+              const index = mesh.indexArray[i+j];
+              const vertex = mesh.vertexArray.get(index);
+              const u = vertex.uv[0] / result.width;
+              const v = vertex.uv[1] / result.height;
+              if (j == 0) {
+                ctx.moveTo(u*uvMap.width, v*uvMap.height);
+              } else {
+                ctx.lineTo(u*uvMap.width, v*uvMap.height);
+              }
+            }
+            ctx.closePath();
+            ctx.stroke();
+          }
+        }
       }
 
       initScene();
-
-      /*const verts = new Float32Array([
-        0, 1, 2,
-        3, 4, 5,
-        6, 7, 8
-      ]);
-
-      const indices = new Uint16Array([
-        0, 1, 2,
-      ]);
-
-      const err = atlas.addMesh({
-        vertexPositionData: verts,
-        vertexCount: 3,
-        vertexPositionStride: 12,
-        indexData: indices,
-        indexCount: 3,
-        indexFormat: 'UInt16'
-      });
-
-      atlas.computeCharts({
-        maxChartArea: 256
-      });
-      atlas.packCharts({
-        padding: 1,
-        bilinear: false,
-      });
-
-      const result = atlas.getResult();
-
-      console.log(result);
-
-      atlas.delete();*/
     </script>
   </body>
 </html>
