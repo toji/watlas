@@ -1,4 +1,11 @@
 <html>
+  <head>
+    <style>
+      html, body {
+        margin: 0;
+      }
+    </style>
+  </head>
   <body>
     <script type="importmap">
       {
@@ -8,6 +15,8 @@
         }
       }
     </script>
+
+    <canvas id='uv-map'></canvas>
 
     <script type='module'>
       import { default as WAtlasLoader } from '../../dist/watlas.js';
@@ -21,6 +30,9 @@
 
       let object;
       let texture;
+
+      let uvMap = document.getElementById('uv-map');
+      let ctx = uvMap.getContext('2d');
 
       function initScene() {
         camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 20 );
@@ -98,6 +110,9 @@
         camera.aspect = window.innerWidth / height;
         camera.updateProjectionMatrix();
 
+        uvMap.width = window.innerWidth;
+        uvMap.height = height;
+
         renderer.setSize( window.innerWidth, height );
         render();
       }
@@ -144,14 +159,38 @@
 
         for (let i = 0; i < mesh.vertexCount; ++i) {
           const vertex = mesh.vertexArray.get(i);
-          uvArray[(i*2) + 0] = vertex.uv[0] / result.width;
-          uvArray[(i*2) + 1] = vertex.uv[1] / result.height;
+          const u = vertex.uv[0] / result.width;
+          const v = vertex.uv[1] / result.height;
+          uvArray[(i*2) + 0] = u;
+          uvArray[(i*2) + 1] = v;
 
           for (const attrib of attribArrays) {
             for (let j = 0; j < attrib.stride; ++j) {
               attrib.array[(i * attrib.stride) + j] = attrib.source[(vertex.xref * attrib.stride) + j];
             }
           }
+        }
+
+        // Draw the UV layout
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(0, 0, uvMap.width, uvMap.height);
+        ctx.strokeStyle = '#dddddd';
+
+        for (let i = 0; i < mesh.indexCount; i+=3) {
+          ctx.beginPath();
+          for (let j = 0; j < 3; ++j) {
+            const index = mesh.indexArray[i+j];
+            const vertex = mesh.vertexArray.get(index);
+            const u = vertex.uv[0] / result.width;
+            const v = vertex.uv[1] / result.height;
+            if (j == 0) {
+              ctx.moveTo(u*uvMap.width, v*uvMap.height);
+            } else {
+              ctx.lineTo(u*uvMap.width, v*uvMap.height);
+            }
+          }
+          ctx.closePath();
+          ctx.stroke();
         }
 
         const newGeom = new THREE.BufferGeometry();
