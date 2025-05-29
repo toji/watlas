@@ -16,6 +16,7 @@ echo "============================================="
 
   # Compile C/C++ code
   em++ \
+    ${OPTIMIZE} \
     -std=c++17 \
     -DXA_MULTITHREADED=0 \
     -DNDEBUG \
@@ -27,15 +28,16 @@ echo "============================================="
     -s MALLOC=emmalloc \
     -s EXPORT_ES6=1 \
     -s MODULARIZE=1 \
-    -s ENVIRONMENT='web,worker' \
+    -s ENVIRONMENT='web,worker,node' \
     -s ASSERTIONS=1 \
     -s NO_DISABLE_EXCEPTION_CATCHING \
+    --emit-tsd watlas.d.ts \
+    --extern-post-js './web/module-post.js' \
     -o ./dist/watlas.js \
     web/*.cpp \
     source/xatlas/xatlas.cpp
 
-  # ${OPTIMIZE} \
-  #--post-js './web/module-post.js' \
+  #
 
   # Move artifacts
   #mv watlas-web.{js,wasm} dist

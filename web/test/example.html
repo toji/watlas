@@ -48,7 +48,7 @@
     <script type='module'>
       import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
 
-      import { default as WAtlasLoader } from '../../dist/watlas.js';
+      import { InitializeWAtlas } from '../../dist/watlas.js';
       
       import * as THREE from 'three';
 
@@ -217,9 +217,7 @@
         renderer.render( scene, camera );
       }
 
-      const WAtlasModule = await WAtlasLoader();
-      const WAtlas = WAtlasModule.WAtlas;
-
+      const WAtlas = await InitializeWAtlas();
       const atlas = new WAtlas();
 
       function onBufferGeometryLoaded(meshGeom) {
