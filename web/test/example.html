@@ -38,7 +38,7 @@
     </script>
 
     <div class='settings' id='settings-pane'>
-      
+
     </div>
     <div class='output' id='output-canvases'>
       <canvas id='uv-map'></canvas>
@@ -48,8 +48,8 @@
     <script type='module'>
       import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
 
-      import { InitializeWAtlas } from '../../dist/watlas.js';
-      
+      import { WAtlas } from '../../dist/watlas.js';
+
       import * as THREE from 'three';
 
       import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
@@ -93,7 +93,7 @@
         rotateChartsToAxis: true,
         rotateCharts: true
       };
-      
+
       const pane = new Pane({
         container: document.getElementById('settings-pane'),
       });
@@ -154,7 +154,7 @@
 
         function loadModel() {
           object.traverse( function ( child ) {
-            if (child.isMesh) { 
+            if (child.isMesh) {
               onBufferGeometryLoaded(child.geometry);
             }
           });
@@ -217,7 +217,7 @@
         renderer.render( scene, camera );
       }
 
-      const WAtlas = await InitializeWAtlas();
+      await WAtlas.Initialize();
       const atlas = new WAtlas();
 
       function onBufferGeometryLoaded(meshGeom) {
@@ -241,7 +241,7 @@
 
         const result = atlas.getResult();
 
-        const mesh = result.meshes.get(0);
+        const mesh = result.meshes[0];
 
         const attribArrays = [];
         for (const attribName in geometry.attributes) {
@@ -249,15 +249,15 @@
           attribArrays.push({
             name: attribName,
             source: attrib.array,
-            array: new Float32Array(mesh.vertexCount * attrib.itemSize),
+            array: new Float32Array(mesh.vertexArray.length * attrib.itemSize),
             stride: attrib.itemSize,
           });
         }
 
-        const uvArray = new Float32Array(mesh.vertexCount * 2);
+        const uvArray = new Float32Array(mesh.vertexArray.length * 2);
 
-        for (let i = 0; i < mesh.vertexCount; ++i) {
-          const vertex = mesh.vertexArray.get(i);
+        for (let i = 0; i < mesh.vertexArray.length; ++i) {
+          const vertex = mesh.vertexArray[i];
           const u = vertex.uv[0] / result.width;
           const v = vertex.uv[1] / result.height;
           uvArray[(i*2) + 0] = u;
@@ -303,14 +303,12 @@
         ctx.fillRect(0, 0, uvMap.width, uvMap.height);
         ctx.strokeStyle = '#dddddd';
 
-        for (let meshIndex = 0; meshIndex < result.meshCount; ++meshIndex) {
-          const mesh = result.meshes.get(meshIndex);
-
-          for (let i = 0; i < mesh.indexCount; i+=3) {
+        for (const mesh of result.meshes) {
+          for (let i = 0; i < mesh.indexArray.length; i+=3) {
             ctx.beginPath();
             for (let j = 0; j < 3; ++j) {
               const index = mesh.indexArray[i+j];
-              const vertex = mesh.vertexArray.get(index);
+              const vertex = mesh.vertexArray[index];
               const u = vertex.uv[0] / result.width;
               const v = vertex.uv[1] / result.height;
               if (j == 0) {

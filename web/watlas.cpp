@@ -16,14 +16,14 @@ template <typename T> std::vector<T> vecFromJSArray(const emscripten::val &jsArr
     return heapVec;
 }
 
-WAtlas::WAtlas() : atlas(xatlas::Create()) {
+WAtlasImpl::WAtlasImpl() : atlas(xatlas::Create()) {
 }
 
-WAtlas::~WAtlas() {
+WAtlasImpl::~WAtlasImpl() {
   xatlas::Destroy(atlas);
 }
 
-xatlas::AddMeshError WAtlas::addMesh(WMeshDecl meshDecl) {
+xatlas::AddMeshError WAtlasImpl::addMesh(WMeshDecl meshDecl) {
   xatlas::MeshDecl mesh;
 
   std::vector<float> posData = vecFromJSArray<float>(meshDecl.vertexPositionData);
@@ -88,7 +88,7 @@ xatlas::AddMeshError WAtlas::addMesh(WMeshDecl meshDecl) {
   return xatlas::AddMesh(atlas, mesh);
 }
 
-xatlas::AddMeshError WAtlas::addUvMesh(WUvMeshDecl meshDecl) {
+xatlas::AddMeshError WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
   xatlas::UvMeshDecl mesh;
 
   std::vector<float> vertexUvData = vecFromJSArray<float>(meshDecl.vertexUvData);
@@ -131,7 +131,7 @@ xatlas::AddMeshError WAtlas::addUvMesh(WUvMeshDecl meshDecl) {
   return xatlas::AddUvMesh(atlas, mesh);
 }
 
-void WAtlas::computeCharts(WChartOptions options) {
+void WAtlasImpl::computeCharts(WChartOptions options) {
   xatlas::ChartOptions chart;
   SET_OPTIONAL(chart, options, maxChartArea)
   SET_OPTIONAL(chart, options, maxBoundaryLength)
@@ -148,7 +148,7 @@ void WAtlas::computeCharts(WChartOptions options) {
   xatlas::ComputeCharts(atlas, chart);
 }
 
-void WAtlas::packCharts(WPackOptions options) {
+void WAtlasImpl::packCharts(WPackOptions options) {
   xatlas::PackOptions pack;
   SET_OPTIONAL(pack, options, maxChartSize)
   SET_OPTIONAL(pack, options, padding)
@@ -163,12 +163,12 @@ void WAtlas::packCharts(WPackOptions options) {
   xatlas::PackCharts(atlas, pack);
 }
 
-void WAtlas::generate(WChartOptions chartOptions, WPackOptions packOptions) {
+void WAtlasImpl::generate(WChartOptions chartOptions, WPackOptions packOptions) {
   computeCharts(chartOptions);
   packCharts(packOptions);
 }
 
-WAtlasResult WAtlas::getResult() {
+WAtlasResult WAtlasImpl::getResult() {
   WAtlasResult result;
 
   for (uint32_t i = 0; i < atlas->meshCount; ++i) {
@@ -196,16 +196,7 @@ WAtlasResult WAtlas::getResult() {
     );
 
     for (uint32_t j = 0; j < atlasMesh->vertexCount; ++j) {
-      const xatlas::Vertex* meshVertex = &(atlasMesh->vertexArray[j]);
-
-      WVertex vertex;
-      vertex.atlasIndex = meshVertex->atlasIndex;
-      vertex.chartIndex = meshVertex->chartIndex;
-      vertex.uv[0] = meshVertex->uv[0];
-      vertex.uv[1] = meshVertex->uv[1];
-      vertex.xref = meshVertex->xref;
-
-      mesh.vertexArray.push_back(vertex);
+      mesh.vertexArray.push_back(atlasMesh->vertexArray[j]);
     }
 
     mesh.chartCount = atlasMesh->chartCount;
@@ -238,7 +229,8 @@ EMSCRIPTEN_BINDINGS(watlas) {
     emscripten::register_optional<xatlas::IndexFormat>();
     emscripten::register_optional<emscripten::val>();
 
-    emscripten::register_vector<WVertex>("WVertexVector");
+    emscripten::register_vector<WChart>("WChartVector");
+    emscripten::register_vector<xatlas::Vertex>("WVertexVector");
     emscripten::register_vector<WMesh>("WMeshVector");
 
     emscripten::enum_<xatlas::ChartType>("WChartType")
@@ -259,13 +251,14 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .element(emscripten::index<0>())
       .element(emscripten::index<1>());
 
-    emscripten::value_object<WVertex>("WVertex")
-      .field("atlasIndex", &WVertex::atlasIndex)
-      .field("chartIndex", &WVertex::chartIndex)
-      .field("uv", &WVertex::uv)
-      .field("xref", &WVertex::xref);
+    emscripten::value_object<xatlas::Vertex>("WVertex")
+      .field("atlasIndex", &xatlas::Vertex::atlasIndex)
+      .field("chartIndex", &xatlas::Vertex::chartIndex)
+      .field("uv", &xatlas::Vertex::uv)
+      .field("xref", &xatlas::Vertex::xref);
 
     emscripten::value_object<WMesh>("WMesh")
+      .field("chartArray", &WMesh::chartArray)
       .field("indexArray", &WMesh::indexArray)
       .field("vertexArray", &WMesh::vertexArray)
       .field("chartCount", &WMesh::chartCount)
@@ -344,12 +337,12 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .field("rotateChartsToAxis", &WPackOptions::rotateChartsToAxis)
       .field("rotateCharts", &WPackOptions::rotateCharts);
 
-    emscripten::class_<WAtlas>("WAtlas")
+    emscripten::class_<WAtlasImpl>("WAtlasImpl")
       .constructor()
-      .function("addMesh", &WAtlas::addMesh)
-      .function("addUvMesh", &WAtlas::addUvMesh)
-      .function("computeCharts", &WAtlas::computeCharts)
-      .function("packCharts", &WAtlas::packCharts)
-      .function("generate", &WAtlas::generate)
-      .function("getResult", &WAtlas::getResult);
+      .function("addMesh", &WAtlasImpl::addMesh)
+      .function("addUvMesh", &WAtlasImpl::addUvMesh)
+      .function("computeCharts", &WAtlasImpl::computeCharts)
+      .function("packCharts", &WAtlasImpl::packCharts)
+      .function("generate", &WAtlasImpl::generate)
+      .function("getResult", &WAtlasImpl::getResult);
 }

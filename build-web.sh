@@ -16,7 +16,6 @@ echo "============================================="
 
   # Compile C/C++ code
   em++ \
-    ${OPTIMIZE} \
     -std=c++17 \
     -DXA_MULTITHREADED=0 \
     -DNDEBUG \
@@ -32,15 +31,16 @@ echo "============================================="
     -s ASSERTIONS=1 \
     -s NO_DISABLE_EXCEPTION_CATCHING \
     --emit-tsd watlas.d.ts \
-    --extern-post-js './web/module-post.js' \
+    --extern-post-js './web/watlas.js' \
     -o ./dist/watlas.js \
     web/*.cpp \
     source/xatlas/xatlas.cpp
 
-  #
+  # We want this in the build command but I'm having trouble running it with WSL
+  # ${OPTIMIZE} \
 
-  # Move artifacts
-  #mv watlas-web.{js,wasm} dist
+  # Copy the manual typescript definitions to the dist folder
+  cp ./web/watlas.d.ts ./dist/watlas.d.ts
 )
 echo "============================================="
 echo "Compiling wasm bindings done"
