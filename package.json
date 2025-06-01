@@ -9,9 +9,11 @@
   "author": "Brandon Jones <tojiro@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "build": "./build-web.sh"
+    "build": "./build-web.sh",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "three": "^0.176.0"
+    "three": "^0.176.0",
+    "vitest": "^3.1.4"
   }
 }
