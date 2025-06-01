@@ -16,6 +16,18 @@ template <typename T> std::vector<T> vecFromJSArray(const emscripten::val &jsArr
     return heapVec;
 }
 
+template <typename T> bool fillJSArrayWithData(const uint32_t dataLen, const T* data, const emscripten::val &jsArray) {
+    const auto jsLen = jsArray["length"].as<uint32_t>();
+    if (jsLen < dataLen) {
+      return false;
+    }
+
+    emscripten::val memoryView{emscripten::typed_memory_view(dataLen, data)};
+    jsArray.call<void>("set", memoryView);
+
+    return true;
+}
+
 WAtlasImpl::WAtlasImpl() : atlas(xatlas::Create()) {
 }
 
@@ -23,7 +35,7 @@ WAtlasImpl::~WAtlasImpl() {
   xatlas::Destroy(atlas);
 }
 
-xatlas::AddMeshError WAtlasImpl::addMesh(WMeshDecl meshDecl) {
+uint32_t WAtlasImpl::addMesh(WMeshDecl meshDecl) {
   xatlas::MeshDecl mesh;
 
   std::vector<float> posData = vecFromJSArray<float>(meshDecl.vertexPositionData);
@@ -51,14 +63,15 @@ xatlas::AddMeshError WAtlasImpl::addMesh(WMeshDecl meshDecl) {
       case 4:
         indexData32 = vecFromJSArray<uint32_t>(v);
         mesh.indexData = indexData32.data();
+        mesh.indexFormat = xatlas::IndexFormat::UInt32;
         break;
       case 2:
         indexData16 = vecFromJSArray<uint16_t>(v);
         mesh.indexData = indexData16.data();
+        mesh.indexFormat = xatlas::IndexFormat::UInt16;
         break;
       default:
-        return xatlas::AddMeshError::Error;
-        break;
+        return static_cast<uint32_t>(xatlas::AddMeshError::Error);
     }
   }
 
@@ -82,13 +95,12 @@ xatlas::AddMeshError WAtlasImpl::addMesh(WMeshDecl meshDecl) {
   SET_OPTIONAL(mesh, meshDecl, indexCount)
   SET_OPTIONAL(mesh, meshDecl, indexOffset)
   SET_OPTIONAL(mesh, meshDecl, faceCount)
-  SET_OPTIONAL(mesh, meshDecl, indexFormat)
   SET_OPTIONAL(mesh, meshDecl, epsilon)
 
-  return xatlas::AddMesh(atlas, mesh);
+  return static_cast<uint32_t>(xatlas::AddMesh(atlas, mesh));
 }
 
-xatlas::AddMeshError WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
+uint32_t WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
   xatlas::UvMeshDecl mesh;
 
   std::vector<float> vertexUvData = vecFromJSArray<float>(meshDecl.vertexUvData);
@@ -104,14 +116,15 @@ xatlas::AddMeshError WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
       case 4:
         indexData32 = vecFromJSArray<uint32_t>(v);
         mesh.indexData = indexData32.data();
+        mesh.indexFormat = xatlas::IndexFormat::UInt32;
         break;
       case 2:
         indexData16 = vecFromJSArray<uint16_t>(v);
         mesh.indexData = indexData16.data();
+        mesh.indexFormat = xatlas::IndexFormat::UInt16;
         break;
       default:
-        return xatlas::AddMeshError::Error;
-        break;
+        return static_cast<uint32_t>(xatlas::AddMeshError::Error);
     }
   }
 
@@ -128,7 +141,7 @@ xatlas::AddMeshError WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
   SET_OPTIONAL(mesh, meshDecl, indexOffset)
   SET_OPTIONAL(mesh, meshDecl, indexFormat)
 
-  return xatlas::AddUvMesh(atlas, mesh);
+  return static_cast<uint32_t>(xatlas::AddUvMesh(atlas, mesh));
 }
 
 void WAtlasImpl::computeCharts(WChartOptions options) {
@@ -168,57 +181,64 @@ void WAtlasImpl::generate(WChartOptions chartOptions, WPackOptions packOptions) 
   packCharts(packOptions);
 }
 
-WAtlasResult WAtlasImpl::getResult() {
-  WAtlasResult result;
-
-  for (uint32_t i = 0; i < atlas->meshCount; ++i) {
-    const xatlas::Mesh* atlasMesh = &(atlas->meshes[i]);
-
-    WMesh mesh;
-
-    for (uint32_t j = 0; j < atlasMesh->chartCount; ++j) {
-      const xatlas::Chart* meshChart = &(atlasMesh->chartArray[j]);
-
-      WChart chart;
-      chart.faceArray = emscripten::val(
-        emscripten::typed_memory_view(meshChart->faceCount, meshChart->faceArray)
-      );
-      chart.atlasIndex = meshChart->atlasIndex;
-      chart.faceCount = meshChart->faceCount;
-      chart.type = meshChart->type;
-      chart.material = meshChart->material;
-
-      mesh.chartArray.push_back(chart);
-    }
-
-    mesh.indexArray = emscripten::val(
-      emscripten::typed_memory_view(atlasMesh->indexCount, atlasMesh->indexArray)
-    );
-
-    for (uint32_t j = 0; j < atlasMesh->vertexCount; ++j) {
-      mesh.vertexArray.push_back(atlasMesh->vertexArray[j]);
-    }
-
-    mesh.chartCount = atlasMesh->chartCount;
-    mesh.indexCount = atlasMesh->indexCount;
-    mesh.vertexCount = atlasMesh->vertexCount;
-
-    result.meshes.push_back(mesh);
+emscripten::val WAtlasImpl::getMesh(uint32_t index) const {
+  if (index >= atlas->meshCount) {
+    return emscripten::val::undefined();
   }
 
+  return emscripten::val(atlas->meshes[index]);
+}
 
-  result.utilization = emscripten::val(
-    emscripten::typed_memory_view(atlas->atlasCount, atlas->utilization)
-  );
+bool WAtlasImpl::getUtilization(const emscripten::val& jsArray) const {
+  return fillJSArrayWithData(atlas->atlasCount, atlas->utilization, jsArray);
+}
 
-  result.width = atlas->width;
-  result.height = atlas->height;
-  result.atlasCount = atlas->atlasCount;
-  result.chartCount = atlas->chartCount;
-  result.meshCount = atlas->meshCount;
-  result.texelsPerUnit = atlas->texelsPerUnit;
+uint32_t WAtlasImpl::width() const {
+  return atlas->width;
+}
 
-  return result;
+uint32_t WAtlasImpl::height() const {
+  return atlas->height;
+}
+
+uint32_t WAtlasImpl::atlasCount() const {
+  return atlas->atlasCount;
+}
+
+uint32_t WAtlasImpl::chartCount() const {
+  return atlas->chartCount;
+}
+
+uint32_t WAtlasImpl::meshCount() const {
+  return atlas->meshCount;
+}
+
+float WAtlasImpl::texelsPerUnit() const {
+  return atlas->texelsPerUnit;
+}
+
+emscripten::val getMeshChart(const xatlas::Mesh& mesh, uint32_t index) {
+  if (index >= mesh.chartCount) {
+    return emscripten::val::undefined();
+  }
+
+  return emscripten::val(mesh.chartArray[index]);
+}
+
+bool getMeshIndexArray(const xatlas::Mesh& mesh, const emscripten::val& jsArray) {
+  return fillJSArrayWithData(mesh.indexCount, mesh.indexArray, jsArray);
+}
+
+emscripten::val getMeshVertex(const xatlas::Mesh& mesh, uint32_t index) {
+  if (index >= mesh.vertexCount) {
+    return emscripten::val::undefined();
+  }
+
+  return emscripten::val(mesh.vertexArray[index]);
+}
+
+bool getChartFaceArray(const xatlas::Chart& chart, const emscripten::val& jsArray) {
+  return fillJSArrayWithData(chart.faceCount, chart.faceArray, jsArray);
 }
 
 EMSCRIPTEN_BINDINGS(watlas) {
@@ -229,9 +249,9 @@ EMSCRIPTEN_BINDINGS(watlas) {
     emscripten::register_optional<xatlas::IndexFormat>();
     emscripten::register_optional<emscripten::val>();
 
-    emscripten::register_vector<WChart>("WChartVector");
-    emscripten::register_vector<xatlas::Vertex>("WVertexVector");
-    emscripten::register_vector<WMesh>("WMeshVector");
+    //emscripten::register_vector<xatlas::Chart>("WChartVector");
+    //emscripten::register_vector<xatlas::Vertex>("WVertexVector");
+    //emscripten::register_vector<WMesh>("WMeshVector");
 
     emscripten::enum_<xatlas::ChartType>("WChartType")
       .value("Planar", xatlas::ChartType::Planar)
@@ -240,12 +260,12 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .value("Piecewise", xatlas::ChartType::Piecewise)
       .value("Invalid", xatlas::ChartType::Invalid);
 
-    emscripten::value_object<WChart>("WChart")
-      .field("faceArray", &WChart::faceArray)
-      .field("atlasIndex", &WChart::atlasIndex)
-      .field("faceCount", &WChart::faceCount)
-      .field("type", &WChart::type)
-      .field("material", &WChart::material);
+    emscripten::class_<xatlas::Chart>("WChart")
+      .function("getFaceArray", &getChartFaceArray)
+      .property("atlasIndex", &xatlas::Chart::atlasIndex)
+      .property("faceCount", &xatlas::Chart::faceCount)
+      .property("type", &xatlas::Chart::type)
+      .property("material", &xatlas::Chart::material);
 
     emscripten::value_array<std::array<float, 2>>("WUv")
       .element(emscripten::index<0>())
@@ -257,23 +277,13 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .field("uv", &xatlas::Vertex::uv)
       .field("xref", &xatlas::Vertex::xref);
 
-    emscripten::value_object<WMesh>("WMesh")
-      .field("chartArray", &WMesh::chartArray)
-      .field("indexArray", &WMesh::indexArray)
-      .field("vertexArray", &WMesh::vertexArray)
-      .field("chartCount", &WMesh::chartCount)
-      .field("indexCount", &WMesh::indexCount)
-      .field("vertexCount", &WMesh::vertexCount);
-
-    emscripten::value_object<WAtlasResult>("WAtlasResult")
-      .field("meshes", &WAtlasResult::meshes)
-      .field("utilization", &WAtlasResult::utilization)
-      .field("width", &WAtlasResult::width)
-      .field("height", &WAtlasResult::height)
-      .field("atlasCount", &WAtlasResult::atlasCount)
-      .field("chartCount", &WAtlasResult::chartCount)
-      .field("meshCount", &WAtlasResult::meshCount)
-      .field("texelsPerUnit", &WAtlasResult::texelsPerUnit);
+    emscripten::class_<xatlas::Mesh>("WMesh")
+      .function("getChart", &getMeshChart)
+      .function("getIndexArray", &getMeshIndexArray)
+      .function("getVertex", &getMeshVertex)
+      .property("chartCount", &xatlas::Mesh::chartCount)
+      .property("indexCount", &xatlas::Mesh::indexCount)
+      .property("vertexCount", &xatlas::Mesh::vertexCount);
 
     emscripten::enum_<xatlas::IndexFormat>("WIndexFormat")
       .value("UInt16", xatlas::IndexFormat::UInt16)
@@ -306,13 +316,6 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .field("indexOffset", &WUvMeshDecl::indexOffset)
       .field("indexFormat", &WUvMeshDecl::indexFormat);
 
-    emscripten::enum_<xatlas::AddMeshError>("WAddMeshError")
-      .value("Success", xatlas::AddMeshError::Success)
-      .value("Error", xatlas::AddMeshError::Error)
-      .value("IndexOutOfRange", xatlas::AddMeshError::IndexOutOfRange)
-      .value("InvalidFaceVertexCount", xatlas::AddMeshError::InvalidFaceVertexCount)
-      .value("InvalidIndexCount", xatlas::AddMeshError::InvalidIndexCount);
-
     emscripten::value_object<WChartOptions>("WChartOptions")
       .field("maxChartArea", &WChartOptions::maxChartArea)
       .field("maxBoundaryLength", &WChartOptions::maxBoundaryLength)
@@ -344,5 +347,13 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .function("computeCharts", &WAtlasImpl::computeCharts)
       .function("packCharts", &WAtlasImpl::packCharts)
       .function("generate", &WAtlasImpl::generate)
-      .function("getResult", &WAtlasImpl::getResult);
+      .function("getMesh", &WAtlasImpl::getMesh)
+      .function("getUtilization", &WAtlasImpl::getUtilization)
+      .property("width", &WAtlasImpl::width)
+      .property("height", &WAtlasImpl::height)
+      .property("atlasCount", &WAtlasImpl::atlasCount)
+      .property("chartCount", &WAtlasImpl::chartCount)
+      .property("meshCount", &WAtlasImpl::meshCount)
+      .property("texelsPerUnit", &WAtlasImpl::texelsPerUnit)
+      ;
 }

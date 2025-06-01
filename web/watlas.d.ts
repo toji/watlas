@@ -1,8 +1,31 @@
+// Copyright (c) 2025 Brandon Jones
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// TypeScript definitions (manually maintained.)
+
 export type WChart = {
-  faceArray: Uint32Array,
-  atlasIndex: number,
-  type: WAtlas.ChartType,
-  material: number
+  getFaceArray(jsArray: Uint32Array): boolean;
+  get faceCount(): number,
+  get atlasIndex(): number,
+  get type(): WAtlas.ChartType,
+  get material(): number
 };
 
 export type WVertex = {
@@ -12,20 +35,13 @@ export type WVertex = {
   xref: number
 };
 
-export type WMesh = {
-  chartArray: WChart[],
-  indexArray: Uint32Array,
-  vertexArray: WVertex[],
-};
-
-export type WAtlasResult = {
-  meshes: WMesh[],
-  utilization: Float32Array,
-  width: number,
-  height: number,
-  atlasCount: number,
-  chartCount: number,
-  texelsPerUnit: number
+export declare class WMesh {
+  getChart(index: number): WChart;
+  getIndexArray(jsArray: Uint32Array): bool;
+  getVertex(index: number): WVertex;
+  get chartCount(): number;
+  get indexCount(): number;
+  get vertexCount(): number;
 };
 
 export type WMeshDecl = {
@@ -83,16 +99,8 @@ export type WPackOptions = {
   rotateCharts?: boolean,
 };
 
-export interface WAtlas {
+export declare class WAtlas {
   static async Initialize(): Promise<void>;
-
-  AddMeshError: {
-    Success: 0,
-    Error: 1,
-    IndexOutOfRange: 2,
-    InvalidFaceVertexCount: 3,
-    InvalidIndexCount: 4,
-  };
 
   ChartType: {
     Planar: 0,
@@ -105,10 +113,18 @@ export interface WAtlas {
   new(): WAtlas;
   delete(): void;
 
-  addMesh(meshDecl: WMeshDecl): WAtlas.AddMeshError;
-  addUvMesh(meshDecl: WUvMeshDecl): WAtlas.AddMeshError;
+  addMesh(meshDecl: WMeshDecl): void;
+  addUvMesh(meshDecl: WUvMeshDecl): void;
   computeCharts(options: WChartOptions): void;
   packCharts(options: WPackOptions): void;
   generate(chartOptions: WChartOptions, packOptions: WPackOptions): void;
-  getResult(): WAtlasResult;
+
+  getMesh(index: number): WMesh;
+  getUtilization(jsArray: Float32Array): boolean;
+  get width(): number;
+  get height(): number;
+  get atlasCount(): number;
+  get chartCount(): number;
+  get meshCount(): number;
+  get texelsPerUnit(): number;
 }

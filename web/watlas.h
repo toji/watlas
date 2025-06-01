@@ -7,35 +7,6 @@
 
 #include "../source/xatlas/xatlas.h"
 
-struct WChart {
-  emscripten::val faceArray;
-  uint32_t atlasIndex; // Sub-atlas index.
-  uint32_t faceCount;
-  xatlas::ChartType type;
-  uint32_t material;
-};
-
-struct WMesh{
-  std::vector<WChart> chartArray;
-  emscripten::val indexArray;
-  std::vector<xatlas::Vertex> vertexArray;
-  uint32_t chartCount;
-  uint32_t indexCount;
-  uint32_t vertexCount;
-};
-
-struct WAtlasResult {
-  //uint32_t *image;
-  std::vector<WMesh> meshes;
-  emscripten::val utilization;
-  uint32_t width;
-  uint32_t height;
-  uint32_t atlasCount;
-  uint32_t chartCount;
-  uint32_t meshCount;
-  float texelsPerUnit;
-};
-
 struct WMeshDecl {
   emscripten::val vertexPositionData;
   std::optional<emscripten::val> vertexNormalData;
@@ -101,14 +72,22 @@ class WAtlasImpl {
   WAtlasImpl();
   ~WAtlasImpl();
 
-  xatlas::AddMeshError addMesh(WMeshDecl meshDecl);
-  xatlas::AddMeshError addUvMesh(WUvMeshDecl meshDecl);
+  uint32_t addMesh(WMeshDecl meshDecl);
+  uint32_t addUvMesh(WUvMeshDecl meshDecl);
 
   void computeCharts(WChartOptions options);
   void packCharts(WPackOptions options);
   void generate(WChartOptions chartOptions, WPackOptions packOptions);
 
-  WAtlasResult getResult();
+  // Atlas Results. Only valid after calling generate or compute/packCharts
+  emscripten::val getMesh(uint32_t index) const;
+  bool getUtilization(const emscripten::val& jsArray) const;
+  uint32_t width() const;
+  uint32_t height() const;
+  uint32_t atlasCount() const;
+  uint32_t chartCount() const;
+  uint32_t meshCount() const;
+  float texelsPerUnit() const;
 
  private:
   xatlas::Atlas* atlas;

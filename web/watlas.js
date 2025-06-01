@@ -1,6 +1,41 @@
-export async function InitializeWAtlas() {
-  const WAtlasModule = await Module();
-  return WAtlasModule.WAtlas;
+// Copyright (c) 2025 Brandon Jones
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// This is a hand-written wrapper around the WASM module to improve API
+// ergonomics. (The direct emscripten bindings left something to be desired.)
+
+function assertAddMeshSuccess(err) {
+  switch(err) {
+    case 0: // Success
+      return;
+    case 1: // Error
+      throw new Error('Unspecified error occured while adding mesh');
+    case 2: // IndexOutOfRange
+      throw new Error('IndexOutOfRange error while adding mesh');
+    case 3: // InvalidFaceVertexCount
+      throw new Error('InvalidFaceVertexCount error while adding mesh');
+    case 4: // InvalidIndexCount
+      throw new Error('InvalidIndexCount error while adding mesh');
+    default:
+      throw new Error(`Unknown error (${err}) occured while adding mesh`);
+  }
 }
 
 export class WAtlas {
@@ -21,11 +56,6 @@ export class WAtlas {
     IndexOutOfRange: 2,
     InvalidFaceVertexCount: 3,
     InvalidIndexCount: 4,
-  }
-
-  static IndexFormat = {
-    UInt16: 0,
-    UInt32: 1,
   }
 
   static ChartType = {
@@ -50,31 +80,11 @@ export class WAtlas {
   }
 
   addMesh(meshDecl) {
-    const meshDeclImpl = {...meshDecl};
-    if (meshDecl.indexData) {
-      if (meshDecl.indexData instanceof Uint16Array) {
-        meshDeclImpl.indexFormat = 0; ; // Uint16
-      } else if (meshDecl.indexData instanceof Uint32Array) {
-        meshDeclImpl.indexFormat = 1; // Uint32
-      } else {
-        throw new Error('Unsupported indexData format. Must be Uint16Array or Uint32Array');
-      }
-    }
-    return this.#impl.addMesh(meshDecl);
+    assertAddMeshSuccess(this.#impl.addMesh(meshDecl));
   }
 
   addUvMesh(meshDecl) {
-    const meshDeclImpl = {...meshDecl};
-    if (meshDecl.indexData) {
-      if (meshDecl.indexData instanceof Uint16Array) {
-        meshDeclImpl.indexFormat = 0; ; // Uint16
-      } else if (meshDecl.indexData instanceof Uint32Array) {
-        meshDeclImpl.indexFormat = 1; // Uint32
-      } else {
-        throw new Error('Unsupported indexData format. Must be Uint16Array or Uint32Array');
-      }
-    }
-    return this.#impl.addUvMesh(meshDecl);
+    assertAddMeshSuccess(this.#impl.addUvMesh(meshDecl));
   }
 
   computeCharts(options) {
@@ -89,55 +99,12 @@ export class WAtlas {
     this.#impl.generate(chartOptions, packOptions);
   }
 
-  getResult() {
-    const resultImpl = this.#impl.getResult();
-
-    const result = {
-      meshes: [],
-      utilization: new Float32Array(resultImpl.atlasCount),
-      width: resultImpl.width,
-      height: resultImpl.height,
-      atlasCount: resultImpl.atlasCount,
-      chartCount: resultImpl.chartCount,
-      texelsPerUnit: resultImpl.texelsPerUnit,
-    };
-
-    for (let i = 0; i < resultImpl.meshCount; ++i) {
-      const meshImpl = resultImpl.meshes.get(0);
-
-      const mesh = {
-        chartArray: [],
-        indexArray: new Uint32Array(meshImpl.indexCount),
-        vertexArray: [],
-      };
-
-      for (let j = 0; j < meshImpl.chartCount; ++j) {
-        const chartImpl = meshImpl.chartArray.get(j);
-
-        const chart = {
-          faceArray: new Uint32Array(chartImpl.faceCount),
-          atlasIndex: chartImpl.atlasIndex,
-          type: chartImpl.type, // TODO: Translate Enum
-          material: chartImpl.material,
-        };
-
-        chart.faceArray.set(chartImpl.faceArray);
-
-        mesh.chartArray.push(chart);
-      }
-
-      mesh.indexArray.set(meshImpl.indexArray);
-
-      for (let j = 0; j < meshImpl.vertexCount; ++j) {
-        const vertexImpl = meshImpl.vertexArray.get(j);
-        mesh.vertexArray.push(vertexImpl);
-      }
-
-      result.meshes.push(mesh);
-    }
-
-    result.utilization.set(resultImpl.utilization);
-
-    return result;
-  }
+  getMesh(index) { return this.#impl.getMesh(index); }
+  getUtilization(jsArray) { return this.#impl.getUtilization(jsArray); }
+  get width() { return this.#impl.width; }
+  get height() { return this.#impl.height; }
+  get atlasCount() { return this.#impl.atlasCount; }
+  get chartCount() { return this.#impl.chartCount; }
+  get meshCount() { return this.#impl.meshCount; }
+  get texelsPerUnit() { return this.#impl.texelsPerUnit; }
 }

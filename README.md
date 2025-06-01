@@ -10,11 +10,16 @@ This wrapper was written with the intent to be used by [gltf-transform](https://
 
 ```js
 //TODO: import and initialize
+
+// Initialize the WASM module prior to calling any API methods.
+await WAtlas.Initialize();
 ```
 
 #### Simple use
 
 ```js
+
+
 // Create an empty atlas
 const atlas = new WAtlas();
 
@@ -27,9 +32,8 @@ atlas.addMesh({
   vertexPositionData: positions,
   vertexCount: 256,
   vertexPositionStride: 12, // In bytes
-  indexData: indices,
+  indexData: indices, // Index format will be determined by Typed Array type
   indexCount: 512,
-  indexFormat: 'UInt16' // Or `UInt32`
 });
 
 // Call generate on the atlas
@@ -38,9 +42,9 @@ atlas.generate(
   {}  // Pack options
 );
 
-// Call getResult to get the resulting packed atlas data
+// Packed atlas data is not available on the atlas object.
 // See below for how to interpret results
-const result = atlas.getResult();
+console.log(`Atlas size: (${atlas.width}, ${atlas.height})`);
 
 // When finished, manually delete the atlas
 atlas.delete();
@@ -65,8 +69,6 @@ atlas.packCharts({
   padding: 1,
   bilinear: false,
 });
-
-const result = atlas.getResult();
 ```
 
 #### Pack multiple atlases into a single atlas
@@ -82,15 +84,34 @@ atlas.packCharts({
   padding: 1,
   bilinear: false,
 });
-
-const result = atlas.getResult();
 ```
 
 #### Using Results
 
 ```js
-const result = atlas.getResult();
 
+// Loop through each mesh that was part of the atlas.
+// (Returned in the order that they were added to the atlas)
+for (let i = 0; i < atlas.meshCount; ++i) {
+  const mesh = atlas.getMesh(i);
+
+  const indices = new Uint32Array(mesh.indexCount);
+  mesh.getIndexArray(indices); // Populates indices with the mesh index data
+
+  for (let j = 0; j < mesh.vertexCount; ++j) {
+    const vertex = mesh.getVertex(j);
+    // UVs are returned in texels, and will need to be normalized for most use cases.
+    const u = vertex.uv[0] / atlas.width;
+    const v = vertex.uv[1] / atlas.height;
+
+    // xref gives the original vertex index associated with this new vertex.
+    // Copy the attributes from the original mesh at that index.
+    const position = getPositionByIndex(vertex.xref);
+    const normal = getNormalByIndex(vertex.xref);
+
+    emitVertex(position, normal, [u, v]);
+  }
+}
 
 ```
 

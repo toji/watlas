@@ -2466,6 +2466,92 @@ async function createWasm() {
     };
 
   
+  
+  
+  
+  
+  
+  
+  var validateThis = (this_, classType, humanName) => {
+      if (!(this_ instanceof Object)) {
+        throwBindingError(`${humanName} with invalid "this": ${this_}`);
+      }
+      if (!(this_ instanceof classType.registeredClass.constructor)) {
+        throwBindingError(`${humanName} incompatible with "this" of type ${this_.constructor.name}`);
+      }
+      if (!this_.$$.ptr) {
+        throwBindingError(`cannot call emscripten binding method ${humanName} on deleted object`);
+      }
+  
+      // todo: kill this
+      return upcastPointer(this_.$$.ptr,
+                           this_.$$.ptrType.registeredClass,
+                           classType.registeredClass);
+    };
+  var __embind_register_class_property = (classType,
+                                      fieldName,
+                                      getterReturnType,
+                                      getterSignature,
+                                      getter,
+                                      getterContext,
+                                      setterArgumentType,
+                                      setterSignature,
+                                      setter,
+                                      setterContext) => {
+      fieldName = readLatin1String(fieldName);
+      getter = embind__requireFunction(getterSignature, getter);
+  
+      whenDependentTypesAreResolved([], [classType], (classType) => {
+        classType = classType[0];
+        var humanName = `${classType.name}.${fieldName}`;
+        var desc = {
+          get() {
+            throwUnboundTypeError(`Cannot access ${humanName} due to unbound types`, [getterReturnType, setterArgumentType]);
+          },
+          enumerable: true,
+          configurable: true
+        };
+        if (setter) {
+          desc.set = () => throwUnboundTypeError(`Cannot access ${humanName} due to unbound types`, [getterReturnType, setterArgumentType]);
+        } else {
+          desc.set = (v) => throwBindingError(humanName + ' is a read-only property');
+        }
+  
+        Object.defineProperty(classType.registeredClass.instancePrototype, fieldName, desc);
+  
+        whenDependentTypesAreResolved(
+          [],
+          (setter ? [getterReturnType, setterArgumentType] : [getterReturnType]),
+        (types) => {
+          var getterReturnType = types[0];
+          var desc = {
+            get() {
+              var ptr = validateThis(this, classType, humanName + ' getter');
+              return getterReturnType['fromWireType'](getter(getterContext, ptr));
+            },
+            enumerable: true
+          };
+  
+          if (setter) {
+            setter = embind__requireFunction(setterSignature, setter);
+            var setterArgumentType = types[1];
+            desc.set = function(v) {
+              var ptr = validateThis(this, classType, humanName + ' setter');
+              var destructors = [];
+              setter(setterContext, ptr, setterArgumentType['toWireType'](destructors, v));
+              runDestructors(destructors);
+            };
+          }
+  
+          Object.defineProperty(classType.registeredClass.instancePrototype, fieldName, desc);
+          return [];
+        });
+  
+        return [];
+      });
+    };
+
+  
   var emval_freelist = [];
   
   var emval_handles = [0,1,,1,null,1,true,1,false,1];
@@ -3641,7 +3727,6 @@ Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
   'getInheritedInstanceCount',
   'getLiveInheritedInstances',
   'setDelayFunction',
-  'validateThis',
   'count_emval_handles',
   'emval_get_global',
 ];
@@ -3930,6 +4015,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'shallowCopyInternalPointer',
   'downcastPointer',
   'upcastPointer',
+  'validateThis',
   'char_0',
   'char_9',
   'makeLegalFunctionName',
@@ -4038,6 +4124,8 @@ var wasmImports = {
   _embind_register_class_constructor: __embind_register_class_constructor,
   /** @export */
   _embind_register_class_function: __embind_register_class_function,
+  /** @export */
+  _embind_register_class_property: __embind_register_class_property,
   /** @export */
   _embind_register_emval: __embind_register_emval,
   /** @export */
@@ -4264,28 +4352,6 @@ function invoke_viiiiii(index,a1,a2,a3,a4,a5,a6) {
   }
 }
 
-function invoke_viiii(index,a1,a2,a3,a4) {
-  var sp = stackSave();
-  try {
-    getWasmTableEntry(index)(a1,a2,a3,a4);
-  } catch(e) {
-    stackRestore(sp);
-    if (!(e instanceof EmscriptenEH)) throw e;
-    _setThrew(1, 0);
-  }
-}
-
-function invoke_iiiii(index,a1,a2,a3,a4) {
-  var sp = stackSave();
-  try {
-    return getWasmTableEntry(index)(a1,a2,a3,a4);
-  } catch(e) {
-    stackRestore(sp);
-    if (!(e instanceof EmscriptenEH)) throw e;
-    _setThrew(1, 0);
-  }
-}
-
 function invoke_vid(index,a1,a2) {
   var sp = stackSave();
   try {
@@ -4323,6 +4389,28 @@ function invoke_iiiiii(index,a1,a2,a3,a4,a5) {
   var sp = stackSave();
   try {
     return getWasmTableEntry(index)(a1,a2,a3,a4,a5);
+  } catch(e) {
+    stackRestore(sp);
+    if (!(e instanceof EmscriptenEH)) throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_viiii(index,a1,a2,a3,a4) {
+  var sp = stackSave();
+  try {
+    getWasmTableEntry(index)(a1,a2,a3,a4);
+  } catch(e) {
+    stackRestore(sp);
+    if (!(e instanceof EmscriptenEH)) throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_iiiii(index,a1,a2,a3,a4) {
+  var sp = stackSave();
+  try {
+    return getWasmTableEntry(index)(a1,a2,a3,a4);
   } catch(e) {
     stackRestore(sp);
     if (!(e instanceof EmscriptenEH)) throw e;
@@ -4555,9 +4643,44 @@ for (const prop of Object.keys(Module)) {
 );
 })();
 export default Module;
-export async function InitializeWAtlas() {
-  const WAtlasModule = await Module();
-  return WAtlasModule.WAtlas;
+// Copyright (c) 2025 Brandon Jones
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// This is a hand-written wrapper around the WASM module to improve API
+// ergonomics. (The direct emscripten bindings left something to be desired.)
+
+function assertAddMeshSuccess(err) {
+  switch(err) {
+    case 0: // Success
+      return;
+    case 1: // Error
+      throw new Error('Unspecified error occured while adding mesh');
+    case 2: // IndexOutOfRange
+      throw new Error('IndexOutOfRange error while adding mesh');
+    case 3: // InvalidFaceVertexCount
+      throw new Error('InvalidFaceVertexCount error while adding mesh');
+    case 4: // InvalidIndexCount
+      throw new Error('InvalidIndexCount error while adding mesh');
+    default:
+      throw new Error(`Unknown error (${err}) occured while adding mesh`);
+  }
 }
 
 export class WAtlas {
@@ -4578,11 +4701,6 @@ export class WAtlas {
     IndexOutOfRange: 2,
     InvalidFaceVertexCount: 3,
     InvalidIndexCount: 4,
-  }
-
-  static IndexFormat = {
-    UInt16: 0,
-    UInt32: 1,
   }
 
   static ChartType = {
@@ -4607,31 +4725,11 @@ export class WAtlas {
   }
 
   addMesh(meshDecl) {
-    const meshDeclImpl = {...meshDecl};
-    if (meshDecl.indexData) {
-      if (meshDecl.indexData instanceof Uint16Array) {
-        meshDeclImpl.indexFormat = 0; ; // Uint16
-      } else if (meshDecl.indexData instanceof Uint32Array) {
-        meshDeclImpl.indexFormat = 1; // Uint32
-      } else {
-        throw new Error('Unsupported indexData format. Must be Uint16Array or Uint32Array');
-      }
-    }
-    return this.#impl.addMesh(meshDecl);
+    assertAddMeshSuccess(this.#impl.addMesh(meshDecl));
   }
 
   addUvMesh(meshDecl) {
-    const meshDeclImpl = {...meshDecl};
-    if (meshDecl.indexData) {
-      if (meshDecl.indexData instanceof Uint16Array) {
-        meshDeclImpl.indexFormat = 0; ; // Uint16
-      } else if (meshDecl.indexData instanceof Uint32Array) {
-        meshDeclImpl.indexFormat = 1; // Uint32
-      } else {
-        throw new Error('Unsupported indexData format. Must be Uint16Array or Uint32Array');
-      }
-    }
-    return this.#impl.addUvMesh(meshDecl);
+    assertAddMeshSuccess(this.#impl.addUvMesh(meshDecl));
   }
 
   computeCharts(options) {
@@ -4646,55 +4744,12 @@ export class WAtlas {
     this.#impl.generate(chartOptions, packOptions);
   }
 
-  getResult() {
-    const resultImpl = this.#impl.getResult();
-
-    const result = {
-      meshes: [],
-      utilization: new Float32Array(resultImpl.atlasCount),
-      width: resultImpl.width,
-      height: resultImpl.height,
-      atlasCount: resultImpl.atlasCount,
-      chartCount: resultImpl.chartCount,
-      texelsPerUnit: resultImpl.texelsPerUnit,
-    };
-
-    for (let i = 0; i < resultImpl.meshCount; ++i) {
-      const meshImpl = resultImpl.meshes.get(0);
-
-      const mesh = {
-        chartArray: [],
-        indexArray: new Uint32Array(meshImpl.indexCount),
-        vertexArray: [],
-      };
-
-      for (let j = 0; j < meshImpl.chartCount; ++j) {
-        const chartImpl = meshImpl.chartArray.get(j);
-
-        const chart = {
-          faceArray: new Uint32Array(chartImpl.faceCount),
-          atlasIndex: chartImpl.atlasIndex,
-          type: chartImpl.type, // TODO: Translate Enum
-          material: chartImpl.material,
-        };
-
-        chart.faceArray.set(chartImpl.faceArray);
-
-        mesh.chartArray.push(chart);
-      }
-
-      mesh.indexArray.set(meshImpl.indexArray);
-
-      for (let j = 0; j < meshImpl.vertexCount; ++j) {
-        const vertexImpl = meshImpl.vertexArray.get(j);
-        mesh.vertexArray.push(vertexImpl);
-      }
-
-      result.meshes.push(mesh);
-    }
-
-    result.utilization.set(resultImpl.utilization);
-
-    return result;
-  }
+  getMesh(index) { return this.#impl.getMesh(index); }
+  getUtilization(jsArray) { return this.#impl.getUtilization(jsArray); }
+  get width() { return this.#impl.width; }
+  get height() { return this.#impl.height; }
+  get atlasCount() { return this.#impl.atlasCount; }
+  get chartCount() { return this.#impl.chartCount; }
+  get meshCount() { return this.#impl.meshCount; }
+  get texelsPerUnit() { return this.#impl.texelsPerUnit; }
 }

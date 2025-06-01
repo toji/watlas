@@ -239,9 +239,7 @@
       function updateAtlas() {
         atlas.generate(chartOptions, packOptions);
 
-        const result = atlas.getResult();
-
-        const mesh = result.meshes[0];
+        const mesh = atlas.getMesh(0);
 
         const attribArrays = [];
         for (const attribName in geometry.attributes) {
@@ -249,17 +247,17 @@
           attribArrays.push({
             name: attribName,
             source: attrib.array,
-            array: new Float32Array(mesh.vertexArray.length * attrib.itemSize),
+            array: new Float32Array(mesh.vertexCount * attrib.itemSize),
             stride: attrib.itemSize,
           });
         }
 
-        const uvArray = new Float32Array(mesh.vertexArray.length * 2);
+        const uvArray = new Float32Array(mesh.vertexCount * 2);
 
-        for (let i = 0; i < mesh.vertexArray.length; ++i) {
-          const vertex = mesh.vertexArray[i];
-          const u = vertex.uv[0] / result.width;
-          const v = vertex.uv[1] / result.height;
+        for (let i = 0; i < mesh.vertexCount; ++i) {
+          const vertex = mesh.getVertex(i);
+          const u = vertex.uv[0] / atlas.width;
+          const v = vertex.uv[1] / atlas.height;
           uvArray[(i*2) + 0] = u;
           uvArray[(i*2) + 1] = v;
 
@@ -276,8 +274,11 @@
           newGeom.setAttribute(attrib.name, new THREE.BufferAttribute(attrib.array, attrib.stride));
         }
 
+        const indexArray = new Uint32Array(mesh.indexCount);
+        mesh.getIndexArray(indexArray);
+
         newGeom.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
-        newGeom.setIndex(new THREE.BufferAttribute(mesh.indexArray, 1));
+        newGeom.setIndex(new THREE.BufferAttribute(indexArray, 1));
 
         const material = new THREE.MeshBasicMaterial( { map: texture } );
 
@@ -292,25 +293,26 @@
 
         scene.add(threeMesh);
         render();
-        drawUVs(result);
-
-        //console.log(result);
+        drawUVs(atlas);
       }
 
-      function drawUVs(result) {
+      function drawUVs(atlas) {
         // Draw the UV layout
         ctx.fillStyle = '#222222';
         ctx.fillRect(0, 0, uvMap.width, uvMap.height);
         ctx.strokeStyle = '#dddddd';
 
-        for (const mesh of result.meshes) {
-          for (let i = 0; i < mesh.indexArray.length; i+=3) {
+        for (const meshIndex = 0; meshIndex < atlas.meshCount; ++meshIndex) {
+          const mesh = atlas.getMesh(meshIndex);
+          const indexArray = new Uint32Array(mesh.indexCount);
+          mesh.getIndexArray(indexArray);
+          for (let i = 0; i < indexArray.length; i+=3) {
             ctx.beginPath();
             for (let j = 0; j < 3; ++j) {
-              const index = mesh.indexArray[i+j];
-              const vertex = mesh.vertexArray[index];
-              const u = vertex.uv[0] / result.width;
-              const v = vertex.uv[1] / result.height;
+              const index = indexArray[i+j];
+              const vertex = mesh.getVertex(index);
+              const u = vertex.uv[0] / atlas.width;
+              const v = vertex.uv[1] / atlas.height;
               if (j == 0) {
                 ctx.moveTo(u*uvMap.width, v*uvMap.height);
               } else {
