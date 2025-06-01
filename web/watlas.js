@@ -94,7 +94,7 @@ export class WAtlas {
     this.#impl.packCharts(options);
   }
 
-  generate(chartOptions, packOptions) {
+  generate(chartOptions = {}, packOptions = {}) {
     this.#impl.generate(chartOptions, packOptions);
   }
 

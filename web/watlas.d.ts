@@ -117,7 +117,7 @@ export declare class WAtlas {
   addUvMesh(meshDecl: WUvMeshDecl): void;
   computeCharts(options: WChartOptions): void;
   packCharts(options: WPackOptions): void;
-  generate(chartOptions: WChartOptions, packOptions: WPackOptions): void;
+  generate(chartOptions?: WChartOptions, packOptions?: WPackOptions): void;
 
   getMesh(index: number): WMesh;
   getUtilization(jsArray: Float32Array): boolean;

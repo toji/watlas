@@ -4663,8 +4663,7 @@ export default Module;
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// This is a hand-written wrapper around the WASM module to improve API
-// ergonomics. (The direct emscripten bindings left something to be desired.)
+// Hand-written wrapper around the WASM module to improve API ergonomics.
 
 function assertAddMeshSuccess(err) {
   switch(err) {
@@ -4714,7 +4713,7 @@ export class WAtlas {
   #impl;
   constructor() {
     if (!WAtlas.#module) {
-      throw new Error('WAtlas not initialized! Call await WAtlas.Initialize() before constructing an WAtlas instance.')
+      throw new Error('WAtlas not initialized! Call `await WAtlas.Initialize()` before constructing an WAtlas instance.')
     }
     this.#impl = new WAtlas.#module.WAtlasImpl();
   }
@@ -4740,7 +4739,7 @@ export class WAtlas {
     this.#impl.packCharts(options);
   }
 
-  generate(chartOptions, packOptions) {
+  generate(chartOptions = {}, packOptions = {}) {
     this.#impl.generate(chartOptions, packOptions);
   }
 

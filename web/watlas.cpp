@@ -237,6 +237,10 @@ emscripten::val getMeshVertex(const xatlas::Mesh& mesh, uint32_t index) {
   return emscripten::val(mesh.vertexArray[index]);
 }
 
+uint32_t getChartType(const xatlas::Chart& chart) {
+  return static_cast<uint32_t>(chart.type);
+}
+
 bool getChartFaceArray(const xatlas::Chart& chart, const emscripten::val& jsArray) {
   return fillJSArrayWithData(chart.faceCount, chart.faceArray, jsArray);
 }
@@ -264,7 +268,7 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .function("getFaceArray", &getChartFaceArray)
       .property("atlasIndex", &xatlas::Chart::atlasIndex)
       .property("faceCount", &xatlas::Chart::faceCount)
-      .property("type", &xatlas::Chart::type)
+      .property("type", &getChartType)
       .property("material", &xatlas::Chart::material);
 
     emscripten::value_array<std::array<float, 2>>("WUv")

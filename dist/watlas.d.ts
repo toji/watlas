@@ -24,7 +24,7 @@ export type WChart = {
   getFaceArray(jsArray: Uint32Array): boolean;
   get faceCount(): number,
   get atlasIndex(): number,
-  get type(): WAtlas.ChartType,
+  get type(): WAtlas['ChartType'],
   get material(): number
 };
 
@@ -37,7 +37,7 @@ export type WVertex = {
 
 export declare class WMesh {
   getChart(index: number): WChart;
-  getIndexArray(jsArray: Uint32Array): bool;
+  getIndexArray(jsArray: Uint32Array): boolean;
   getVertex(index: number): WVertex;
   get chartCount(): number;
   get indexCount(): number;
@@ -100,7 +100,7 @@ export type WPackOptions = {
 };
 
 export declare class WAtlas {
-  static async Initialize(): Promise<void>;
+  static Initialize(): Promise<void>;
 
   ChartType: {
     Planar: 0,
@@ -117,7 +117,7 @@ export declare class WAtlas {
   addUvMesh(meshDecl: WUvMeshDecl): void;
   computeCharts(options: WChartOptions): void;
   packCharts(options: WPackOptions): void;
-  generate(chartOptions: WChartOptions, packOptions: WPackOptions): void;
+  generate(chartOptions?: WChartOptions, packOptions?: WPackOptions): void;
 
   getMesh(index: number): WMesh;
   getUtilization(jsArray: Float32Array): boolean;
