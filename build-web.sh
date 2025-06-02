@@ -17,6 +17,7 @@ echo "============================================="
   # Compile C/C++ code
   em++ \
     -std=c++17 \
+    ${OPTIMIZE} \
     -DXA_MULTITHREADED=0 \
     -DNDEBUG \
     --bind \
