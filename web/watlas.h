@@ -7,7 +7,9 @@
 
 #include "../source/xatlas/xatlas.h"
 
-struct WMeshDecl {
+namespace watlas {
+
+struct MeshDecl {
   emscripten::val vertexPositionData;
   std::optional<emscripten::val> vertexNormalData;
   std::optional<emscripten::val> vertexUvData;
@@ -27,7 +29,7 @@ struct WMeshDecl {
   std::optional<float> epsilon;
 };
 
-struct WUvMeshDecl {
+struct UvMeshDecl {
   emscripten::val vertexUvData;
   std::optional<emscripten::val> indexData;
   std::optional<emscripten::val> faceMaterialData;
@@ -38,7 +40,7 @@ struct WUvMeshDecl {
   std::optional<xatlas::IndexFormat> indexFormat;
 };
 
-struct WChartOptions {
+struct ChartOptions {
   std::optional<float> maxChartArea;
   std::optional<float> maxBoundaryLength;
 
@@ -55,7 +57,7 @@ struct WChartOptions {
   std::optional<bool> fixWinding;
 };
 
-struct WPackOptions {
+struct PackOptions {
   std::optional<uint32_t> maxChartSize;
   std::optional<uint32_t> padding;
   std::optional<float> texelsPerUnit;
@@ -67,17 +69,17 @@ struct WPackOptions {
   std::optional<bool> rotateCharts;
 };
 
-class WAtlasImpl {
+class Atlas {
  public:
-  WAtlasImpl();
-  ~WAtlasImpl();
+  Atlas();
+  ~Atlas();
 
-  uint32_t addMesh(WMeshDecl meshDecl);
-  uint32_t addUvMesh(WUvMeshDecl meshDecl);
+  uint32_t addMesh(MeshDecl meshDecl);
+  uint32_t addUvMesh(UvMeshDecl meshDecl);
 
-  void computeCharts(WChartOptions options);
-  void packCharts(WPackOptions options);
-  void generate(WChartOptions chartOptions, WPackOptions packOptions);
+  void computeCharts(ChartOptions options);
+  void packCharts(PackOptions options);
+  void generate(ChartOptions chartOptions, PackOptions packOptions);
 
   // Atlas Results. Only valid after calling generate or compute/packCharts
   emscripten::val getMesh(uint32_t index) const;
@@ -92,5 +94,7 @@ class WAtlasImpl {
  private:
   xatlas::Atlas* atlas;
 };
+
+}  // namespace watlas
 
 #endif

@@ -1,6 +1,8 @@
 #include "watlas.h"
 #include <stdio.h>
 
+namespace watlas {
+
 #define SET_OPTIONAL(out, in, propName) \
   if (in.propName.has_value()) { out.propName = in.propName.value(); }
 
@@ -28,14 +30,14 @@ template <typename T> bool fillJSArrayWithData(const uint32_t dataLen, const T* 
     return true;
 }
 
-WAtlasImpl::WAtlasImpl() : atlas(xatlas::Create()) {
+Atlas::Atlas() : atlas(xatlas::Create()) {
 }
 
-WAtlasImpl::~WAtlasImpl() {
+Atlas::~Atlas() {
   xatlas::Destroy(atlas);
 }
 
-uint32_t WAtlasImpl::addMesh(WMeshDecl meshDecl) {
+uint32_t Atlas::addMesh(MeshDecl meshDecl) {
   xatlas::MeshDecl mesh;
 
   std::vector<float> posData = vecFromJSArray<float>(meshDecl.vertexPositionData);
@@ -100,7 +102,7 @@ uint32_t WAtlasImpl::addMesh(WMeshDecl meshDecl) {
   return static_cast<uint32_t>(xatlas::AddMesh(atlas, mesh));
 }
 
-uint32_t WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
+uint32_t Atlas::addUvMesh(UvMeshDecl meshDecl) {
   xatlas::UvMeshDecl mesh;
 
   std::vector<float> vertexUvData = vecFromJSArray<float>(meshDecl.vertexUvData);
@@ -144,7 +146,7 @@ uint32_t WAtlasImpl::addUvMesh(WUvMeshDecl meshDecl) {
   return static_cast<uint32_t>(xatlas::AddUvMesh(atlas, mesh));
 }
 
-void WAtlasImpl::computeCharts(WChartOptions options) {
+void Atlas::computeCharts(ChartOptions options) {
   xatlas::ChartOptions chart;
   SET_OPTIONAL(chart, options, maxChartArea)
   SET_OPTIONAL(chart, options, maxBoundaryLength)
@@ -161,7 +163,7 @@ void WAtlasImpl::computeCharts(WChartOptions options) {
   xatlas::ComputeCharts(atlas, chart);
 }
 
-void WAtlasImpl::packCharts(WPackOptions options) {
+void Atlas::packCharts(PackOptions options) {
   xatlas::PackOptions pack;
   SET_OPTIONAL(pack, options, maxChartSize)
   SET_OPTIONAL(pack, options, padding)
@@ -176,12 +178,12 @@ void WAtlasImpl::packCharts(WPackOptions options) {
   xatlas::PackCharts(atlas, pack);
 }
 
-void WAtlasImpl::generate(WChartOptions chartOptions, WPackOptions packOptions) {
+void Atlas::generate(ChartOptions chartOptions, PackOptions packOptions) {
   computeCharts(chartOptions);
   packCharts(packOptions);
 }
 
-emscripten::val WAtlasImpl::getMesh(uint32_t index) const {
+emscripten::val Atlas::getMesh(uint32_t index) const {
   if (index >= atlas->meshCount) {
     return emscripten::val::undefined();
   }
@@ -189,31 +191,31 @@ emscripten::val WAtlasImpl::getMesh(uint32_t index) const {
   return emscripten::val(atlas->meshes[index]);
 }
 
-bool WAtlasImpl::getUtilization(const emscripten::val& jsArray) const {
+bool Atlas::getUtilization(const emscripten::val& jsArray) const {
   return fillJSArrayWithData(atlas->atlasCount, atlas->utilization, jsArray);
 }
 
-uint32_t WAtlasImpl::width() const {
+uint32_t Atlas::width() const {
   return atlas->width;
 }
 
-uint32_t WAtlasImpl::height() const {
+uint32_t Atlas::height() const {
   return atlas->height;
 }
 
-uint32_t WAtlasImpl::atlasCount() const {
+uint32_t Atlas::atlasCount() const {
   return atlas->atlasCount;
 }
 
-uint32_t WAtlasImpl::chartCount() const {
+uint32_t Atlas::chartCount() const {
   return atlas->chartCount;
 }
 
-uint32_t WAtlasImpl::meshCount() const {
+uint32_t Atlas::meshCount() const {
   return atlas->meshCount;
 }
 
-float WAtlasImpl::texelsPerUnit() const {
+float Atlas::texelsPerUnit() const {
   return atlas->texelsPerUnit;
 }
 
@@ -253,35 +255,31 @@ EMSCRIPTEN_BINDINGS(watlas) {
     emscripten::register_optional<xatlas::IndexFormat>();
     emscripten::register_optional<emscripten::val>();
 
-    //emscripten::register_vector<xatlas::Chart>("WChartVector");
-    //emscripten::register_vector<xatlas::Vertex>("WVertexVector");
-    //emscripten::register_vector<WMesh>("WMeshVector");
-
-    emscripten::enum_<xatlas::ChartType>("WChartType")
+    emscripten::enum_<xatlas::ChartType>("ChartType")
       .value("Planar", xatlas::ChartType::Planar)
       .value("Ortho", xatlas::ChartType::Ortho)
       .value("LSCM", xatlas::ChartType::LSCM)
       .value("Piecewise", xatlas::ChartType::Piecewise)
       .value("Invalid", xatlas::ChartType::Invalid);
 
-    emscripten::class_<xatlas::Chart>("WChart")
+    emscripten::class_<xatlas::Chart>("Chart")
       .function("getFaceArray", &getChartFaceArray)
       .property("atlasIndex", &xatlas::Chart::atlasIndex)
       .property("faceCount", &xatlas::Chart::faceCount)
       .property("type", &getChartType)
       .property("material", &xatlas::Chart::material);
 
-    emscripten::value_array<std::array<float, 2>>("WUv")
+    emscripten::value_array<std::array<float, 2>>("Uv")
       .element(emscripten::index<0>())
       .element(emscripten::index<1>());
 
-    emscripten::value_object<xatlas::Vertex>("WVertex")
+    emscripten::value_object<xatlas::Vertex>("Vertex")
       .field("atlasIndex", &xatlas::Vertex::atlasIndex)
       .field("chartIndex", &xatlas::Vertex::chartIndex)
       .field("uv", &xatlas::Vertex::uv)
       .field("xref", &xatlas::Vertex::xref);
 
-    emscripten::class_<xatlas::Mesh>("WMesh")
+    emscripten::class_<xatlas::Mesh>("Mesh")
       .function("getChart", &getMeshChart)
       .function("getIndexArray", &getMeshIndexArray)
       .function("getVertex", &getMeshVertex)
@@ -289,75 +287,77 @@ EMSCRIPTEN_BINDINGS(watlas) {
       .property("indexCount", &xatlas::Mesh::indexCount)
       .property("vertexCount", &xatlas::Mesh::vertexCount);
 
-    emscripten::enum_<xatlas::IndexFormat>("WIndexFormat")
+    emscripten::enum_<xatlas::IndexFormat>("IndexFormat")
       .value("UInt16", xatlas::IndexFormat::UInt16)
       .value("UInt32", xatlas::IndexFormat::UInt32);
 
-    emscripten::value_object<WMeshDecl>("WMeshDecl")
-      .field("vertexPositionData", &WMeshDecl::vertexPositionData)
-      .field("vertexNormalData", &WMeshDecl::vertexNormalData)
-      .field("vertexUvData", &WMeshDecl::vertexUvData)
-      .field("indexData", &WMeshDecl::indexData)
-      .field("faceMaterialData", &WMeshDecl::faceMaterialData)
-      .field("faceVertexCount", &WMeshDecl::faceVertexCount)
-      .field("vertexCount", &WMeshDecl::vertexCount)
-      .field("vertexPositionStride", &WMeshDecl::vertexPositionStride)
-      .field("vertexNormalStride", &WMeshDecl::vertexNormalStride)
-      .field("vertexUvStride", &WMeshDecl::vertexUvStride)
-      .field("indexCount", &WMeshDecl::indexCount)
-      .field("indexOffset", &WMeshDecl::indexOffset)
-      .field("faceCount", &WMeshDecl::faceCount)
-      .field("indexFormat", &WMeshDecl::indexFormat)
-      .field("epsilon", &WMeshDecl::epsilon);
+    emscripten::value_object<MeshDecl>("MeshDecl")
+      .field("vertexPositionData", &MeshDecl::vertexPositionData)
+      .field("vertexNormalData", &MeshDecl::vertexNormalData)
+      .field("vertexUvData", &MeshDecl::vertexUvData)
+      .field("indexData", &MeshDecl::indexData)
+      .field("faceMaterialData", &MeshDecl::faceMaterialData)
+      .field("faceVertexCount", &MeshDecl::faceVertexCount)
+      .field("vertexCount", &MeshDecl::vertexCount)
+      .field("vertexPositionStride", &MeshDecl::vertexPositionStride)
+      .field("vertexNormalStride", &MeshDecl::vertexNormalStride)
+      .field("vertexUvStride", &MeshDecl::vertexUvStride)
+      .field("indexCount", &MeshDecl::indexCount)
+      .field("indexOffset", &MeshDecl::indexOffset)
+      .field("faceCount", &MeshDecl::faceCount)
+      .field("indexFormat", &MeshDecl::indexFormat)
+      .field("epsilon", &MeshDecl::epsilon);
 
-    emscripten::value_object<WUvMeshDecl>("WUvMeshDecl")
-      .field("vertexUvData", &WUvMeshDecl::vertexUvData)
-      .field("indexData", &WUvMeshDecl::indexData)
-      .field("faceMaterialData", &WUvMeshDecl::faceMaterialData)
-      .field("vertexCount", &WUvMeshDecl::vertexCount)
-      .field("vertexStride", &WUvMeshDecl::vertexStride)
-      .field("indexCount", &WUvMeshDecl::indexCount)
-      .field("indexOffset", &WUvMeshDecl::indexOffset)
-      .field("indexFormat", &WUvMeshDecl::indexFormat);
+    emscripten::value_object<UvMeshDecl>("UvMeshDecl")
+      .field("vertexUvData", &UvMeshDecl::vertexUvData)
+      .field("indexData", &UvMeshDecl::indexData)
+      .field("faceMaterialData", &UvMeshDecl::faceMaterialData)
+      .field("vertexCount", &UvMeshDecl::vertexCount)
+      .field("vertexStride", &UvMeshDecl::vertexStride)
+      .field("indexCount", &UvMeshDecl::indexCount)
+      .field("indexOffset", &UvMeshDecl::indexOffset)
+      .field("indexFormat", &UvMeshDecl::indexFormat);
 
-    emscripten::value_object<WChartOptions>("WChartOptions")
-      .field("maxChartArea", &WChartOptions::maxChartArea)
-      .field("maxBoundaryLength", &WChartOptions::maxBoundaryLength)
-      .field("normalDeviationWeight", &WChartOptions::normalDeviationWeight)
-      .field("roundnessWeight", &WChartOptions::roundnessWeight)
-      .field("straightnessWeight", &WChartOptions::straightnessWeight)
-      .field("normalSeamWeight", &WChartOptions::normalSeamWeight)
-      .field("textureSeamWeight", &WChartOptions::textureSeamWeight)
-      .field("maxCost", &WChartOptions::maxCost)
-      .field("maxIterations", &WChartOptions::maxIterations)
-      .field("useInputMeshUvs", &WChartOptions::useInputMeshUvs)
-      .field("fixWinding", &WChartOptions::fixWinding);
+    emscripten::value_object<ChartOptions>("ChartOptions")
+      .field("maxChartArea", &ChartOptions::maxChartArea)
+      .field("maxBoundaryLength", &ChartOptions::maxBoundaryLength)
+      .field("normalDeviationWeight", &ChartOptions::normalDeviationWeight)
+      .field("roundnessWeight", &ChartOptions::roundnessWeight)
+      .field("straightnessWeight", &ChartOptions::straightnessWeight)
+      .field("normalSeamWeight", &ChartOptions::normalSeamWeight)
+      .field("textureSeamWeight", &ChartOptions::textureSeamWeight)
+      .field("maxCost", &ChartOptions::maxCost)
+      .field("maxIterations", &ChartOptions::maxIterations)
+      .field("useInputMeshUvs", &ChartOptions::useInputMeshUvs)
+      .field("fixWinding", &ChartOptions::fixWinding);
 
-    emscripten::value_object<WPackOptions>("WPackOptions")
-      .field("maxChartSize", &WPackOptions::maxChartSize)
-      .field("padding", &WPackOptions::padding)
-      .field("texelsPerUnit", &WPackOptions::texelsPerUnit)
-      .field("resolution", &WPackOptions::resolution)
-      .field("bilinear", &WPackOptions::bilinear)
-      .field("blockAlign", &WPackOptions::blockAlign)
-      .field("bruteForce", &WPackOptions::bruteForce)
-      .field("rotateChartsToAxis", &WPackOptions::rotateChartsToAxis)
-      .field("rotateCharts", &WPackOptions::rotateCharts);
+    emscripten::value_object<PackOptions>("PackOptions")
+      .field("maxChartSize", &PackOptions::maxChartSize)
+      .field("padding", &PackOptions::padding)
+      .field("texelsPerUnit", &PackOptions::texelsPerUnit)
+      .field("resolution", &PackOptions::resolution)
+      .field("bilinear", &PackOptions::bilinear)
+      .field("blockAlign", &PackOptions::blockAlign)
+      .field("bruteForce", &PackOptions::bruteForce)
+      .field("rotateChartsToAxis", &PackOptions::rotateChartsToAxis)
+      .field("rotateCharts", &PackOptions::rotateCharts);
 
-    emscripten::class_<WAtlasImpl>("WAtlasImpl")
+    emscripten::class_<Atlas>("Atlas")
       .constructor()
-      .function("addMesh", &WAtlasImpl::addMesh)
-      .function("addUvMesh", &WAtlasImpl::addUvMesh)
-      .function("computeCharts", &WAtlasImpl::computeCharts)
-      .function("packCharts", &WAtlasImpl::packCharts)
-      .function("generate", &WAtlasImpl::generate)
-      .function("getMesh", &WAtlasImpl::getMesh)
-      .function("getUtilization", &WAtlasImpl::getUtilization)
-      .property("width", &WAtlasImpl::width)
-      .property("height", &WAtlasImpl::height)
-      .property("atlasCount", &WAtlasImpl::atlasCount)
-      .property("chartCount", &WAtlasImpl::chartCount)
-      .property("meshCount", &WAtlasImpl::meshCount)
-      .property("texelsPerUnit", &WAtlasImpl::texelsPerUnit)
+      .function("addMesh", &Atlas::addMesh)
+      .function("addUvMesh", &Atlas::addUvMesh)
+      .function("computeCharts", &Atlas::computeCharts)
+      .function("packCharts", &Atlas::packCharts)
+      .function("generate", &Atlas::generate)
+      .function("getMesh", &Atlas::getMesh)
+      .function("getUtilization", &Atlas::getUtilization)
+      .property("width", &Atlas::width)
+      .property("height", &Atlas::height)
+      .property("atlasCount", &Atlas::atlasCount)
+      .property("chartCount", &Atlas::chartCount)
+      .property("meshCount", &Atlas::meshCount)
+      .property("texelsPerUnit", &Atlas::texelsPerUnit)
       ;
 }
+
+}  // namespace watlas

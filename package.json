@@ -1,13 +1,16 @@
 {
   "name": "watlas",
-  "version": "0.1.0",
+  "version": "0.9.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toji/watlas.git"
+  },
+  "author": "Brandon Jones <tojiro@gmail.com>",
+  "license": "MIT",
   "main": "dist/watlas.js",
   "files": [
     "dist/"
   ],
-  "repository": "https://github.com/toji/watlas.git",
-  "author": "Brandon Jones <tojiro@gmail.com>",
-  "license": "MIT",
   "scripts": {
     "build": "./build-web.sh",
     "test": "vitest run"

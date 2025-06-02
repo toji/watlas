@@ -1,8 +1,8 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
-import { WAtlas, WMesh } from '../../dist/watlas';
+import * as watlas from '../../dist/watlas';
 import { CubeMeshIndexed, CubeMesh } from './cube-mesh';
 
-function validateMesh(atlas: WAtlas, mesh: WMesh) {
+function validateMesh(atlas: watlas.Atlas, mesh: watlas.Mesh) {
     // Verify that we got an array of indices and that they are all valid
     const indices = new Uint32Array(mesh.indexCount);
     mesh.getIndexArray(indices);
@@ -27,7 +27,7 @@ function validateMesh(atlas: WAtlas, mesh: WMesh) {
         expect(chart).toBeDefined();
         expect(chart.atlasIndex).toBeLessThanOrEqual(atlas.atlasCount);
         expect(chart.faceCount).toBeGreaterThan(0);
-        expect(chart.type).toBeLessThan(WAtlas.ChartType.Invalid);
+        expect(chart.type).toBeLessThan(watlas.ChartType.Invalid);
 
         // Not sure what to validate here. Just make sure that it doesn't throw?
         const faces = new Uint32Array(chart.faceCount);
@@ -35,27 +35,27 @@ function validateMesh(atlas: WAtlas, mesh: WMesh) {
     }
 }
 
-describe("WAtlas", function() {
+describe("watlas", function() {
   describe("initialization", () => {
     it("should fail to create a new WAtlas instance if the library has not been initialized", () => {
-      expect(() => new WAtlas()).toThrowError('not initialized');
+      expect(() => new watlas.Atlas()).toThrowError('not initialized');
     });
 
     it("should succeed in creating a new WAtlas instance after the library has been initialzied", async () => {
-      await WAtlas.Initialize();
+      await watlas.Initialize();
 
-      const atlas = new WAtlas();
-      expect(atlas).toBeInstanceOf(WAtlas);
+      const atlas = new watlas.Atlas();
+      expect(atlas).toBeInstanceOf(watlas.Atlas);
       atlas.delete();
     });
   });
 
   describe("usage", () => {
-    let atlas: WAtlas;
+    let atlas: watlas.Atlas;
 
     beforeEach(async () => {
-        await WAtlas.Initialize();
-        atlas = new WAtlas();
+        await watlas.Initialize();
+        atlas = new watlas.Atlas();
     });
 
     afterEach(() => {

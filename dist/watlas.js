@@ -4682,40 +4682,32 @@ function assertAddMeshSuccess(err) {
   }
 }
 
-export class WAtlas {
-  static #modulePromise;
-  static #module;
-  static async Initialize() {
-    if (!WAtlas.#modulePromise) {
-      WAtlas.#modulePromise = Module();
-      WAtlas.#module = await WAtlas.#modulePromise;
-    } else {
-      await WAtlas.#modulePromise;
-    }
+let modulePromise;
+let module;
+export async function Initialize() {
+  if (!modulePromise) {
+    modulePromise = Module();
+    module = await modulePromise;
+  } else {
+    await modulePromise;
   }
+}
 
-  static AddMeshError = {
-    Success: 0,
-    Error: 1,
-    IndexOutOfRange: 2,
-    InvalidFaceVertexCount: 3,
-    InvalidIndexCount: 4,
-  }
+export const ChartType = {
+  Planar: 0,
+  Ortho: 1,
+  LSCM: 2,
+  Piecewise: 3,
+  Invalid: 4,
+}
 
-  static ChartType = {
-    Planar: 0,
-    Ortho: 1,
-    LSCM: 2,
-    Piecewise: 3,
-    Invalid: 4,
-  }
-
+export class Atlas {
   #impl;
   constructor() {
-    if (!WAtlas.#module) {
-      throw new Error('WAtlas not initialized! Call `await WAtlas.Initialize()` before constructing an WAtlas instance.')
+    if (!module) {
+      throw new Error('watlas not initialized! Call `await watlas.Initialize()` before constructing an Atlas instance.')
     }
-    this.#impl = new WAtlas.#module.WAtlasImpl();
+    this.#impl = new module.Atlas();
   }
 
   delete() {

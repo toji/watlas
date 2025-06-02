@@ -6,22 +6,47 @@ watlas is a WebAssembly wrapper for [xatlas](https://github.com/jpcy/xatlas), ma
 
 This wrapper was written with the intent to be used by [gltf-transform](https://gltf-transform.dev/)
 
+### Why the name watlas?
+
+Because the much better name of xatlas.js was already taken. :)
+
+The "w" in this case stands for "web", and happens to be right next to "x" in the (english) alphabet.
+
 ### Library Use
 
 #### Initialization
 
-```js
-//TODO: import and initialize
+You can install it locally via npm and import for node_modules
 
-// Initialize the WASM module prior to calling any API methods.
+```
+# Command Line
+$> npm install watlas
+```
+
+```js
+import { WAtlas } from 'watlas' // For node.js
+
+import { WAtlas } from '../node_modules/watlas/dist/watlas.js' // For the browser
+```
+
+Or import the library from a CDN:
+
+```js
+// Import from a CDN
+import { WAtlas } from 'https://cdn.jsdelivr.net/npm/watlas@1'
+```
+
+Whichever way you import it, to begin using the library you need to call `WAtlas.Initialize()` and
+wait on the returned promise before making any other WAtlas calls.
+
+```js
+// IMPORANT! Initialize the WASM module prior to calling any API methods.
 await WAtlas.Initialize();
 ```
 
 #### Simple use
 
 ```js
-
-
 // Create an empty atlas
 const atlas = new WAtlas();
 

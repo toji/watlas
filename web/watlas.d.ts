@@ -20,31 +20,39 @@
 
 // TypeScript definitions (manually maintained.)
 
-export type WChart = {
+export enum ChartType {
+  Planar = 0,
+  Ortho = 1,
+  LSCM = 2,
+  Piecewise = 3,
+  Invalid = 4,
+};
+
+export type Chart = {
   getFaceArray(jsArray: Uint32Array): boolean;
   get faceCount(): number,
   get atlasIndex(): number,
-  get type(): WAtlas['ChartType'],
+  get type(): ChartType,
   get material(): number
 };
 
-export type WVertex = {
+export type Vertex = {
   atlasIndex: number,
   chartIndex: number,
   uv: [number, number],
   xref: number
 };
 
-export declare class WMesh {
-  getChart(index: number): WChart;
+export declare class Mesh {
+  getChart(index: number): Chart;
   getIndexArray(jsArray: Uint32Array): boolean;
-  getVertex(index: number): WVertex;
+  getVertex(index: number): Vertex;
   get chartCount(): number;
   get indexCount(): number;
   get vertexCount(): number;
 };
 
-export type WMeshDecl = {
+export type MeshDecl = {
   vertexPositionData: Float32Array,
   vertexCount: number,
   vertexPositionStride: number,
@@ -62,7 +70,7 @@ export type WMeshDecl = {
   epsilon?: number,
 };
 
-export type WUvMeshDecl = {
+export type UvMeshDecl = {
   vertexUvData: Float32Array,
   vertexCount: number,
   vertexStride: number,
@@ -73,7 +81,7 @@ export type WUvMeshDecl = {
   indexOffset?: number,
 };
 
-export type WChartOptions = {
+export type ChartOptions = {
   maxChartArea?: number,
   maxBoundaryLength?: number,
   normalDeviationWeight?: number,
@@ -87,7 +95,7 @@ export type WChartOptions = {
   fixWinding?: boolean,
 };
 
-export type WPackOptions = {
+export type PackOptions = {
   maxChartSize?: number,
   padding?: number,
   texelsPerUnit?: number,
@@ -99,27 +107,17 @@ export type WPackOptions = {
   rotateCharts?: boolean,
 };
 
-export declare class WAtlas {
-  static Initialize(): Promise<void>;
-
-  ChartType: {
-    Planar: 0,
-    Ortho: 1,
-    LSCM: 2,
-    Piecewise: 3,
-    Invalid: 4,
-  };
-
-  new(): WAtlas;
+export declare class Atlas {
+  new(): Atlas;
   delete(): void;
 
-  addMesh(meshDecl: WMeshDecl): void;
-  addUvMesh(meshDecl: WUvMeshDecl): void;
-  computeCharts(options: WChartOptions): void;
-  packCharts(options: WPackOptions): void;
-  generate(chartOptions?: WChartOptions, packOptions?: WPackOptions): void;
+  addMesh(meshDecl: MeshDecl): void;
+  addUvMesh(meshDecl: UvMeshDecl): void;
+  computeCharts(options: ChartOptions): void;
+  packCharts(options: PackOptions): void;
+  generate(chartOptions?: ChartOptions, packOptions?: PackOptions): void;
 
-  getMesh(index: number): WMesh;
+  getMesh(index: number): Mesh;
   getUtilization(jsArray: Float32Array): boolean;
   get width(): number;
   get height(): number;
@@ -128,3 +126,5 @@ export declare class WAtlas {
   get meshCount(): number;
   get texelsPerUnit(): number;
 }
+
+export function Initialize(): Promise<void>;
