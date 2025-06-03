@@ -1,4 +1,4 @@
-name: Checkout dependencies, build, and deploy
+name: Build
 
 # Controls when the action will run.
 on:
