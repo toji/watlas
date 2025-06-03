@@ -24,31 +24,31 @@ $> npm install watlas
 ```
 
 ```js
-import { WAtlas } from 'watlas' // For node.js
+import * as watlas from 'watlas' // For node.js
 
-import { WAtlas } from '../node_modules/watlas/dist/watlas.js' // For the browser
+import * as watlas from '../node_modules/watlas/dist/watlas.js' // For the browser
 ```
 
 Or import the library from a CDN:
 
 ```js
 // Import from a CDN
-import { WAtlas } from 'https://cdn.jsdelivr.net/npm/watlas@1'
+import * as watlas from 'https://cdn.jsdelivr.net/npm/watlas'
 ```
 
-Whichever way you import it, to begin using the library you need to call `WAtlas.Initialize()` and
+Whichever way you import it, to begin using the library you need to call `watlas.Initialize()` and
 wait on the returned promise before making any other WAtlas calls.
 
 ```js
 // IMPORANT! Initialize the WASM module prior to calling any API methods.
-await WAtlas.Initialize();
+await watlas.Initialize();
 ```
 
 #### Simple use
 
 ```js
 // Create an empty atlas
-const atlas = new WAtlas();
+const atlas = new watlas.Atlas();
 
 // Load your mesh data into Typed Arrays
 const positions = new Float32Array([ /*...*/ ]);
@@ -116,14 +116,14 @@ atlas.packCharts({
 #### Using Results
 
 ```js
-
 // Loop through each mesh that was part of the atlas.
 // (Returned in the order that they were added to the atlas)
 for (let i = 0; i < atlas.meshCount; ++i) {
   const mesh = atlas.getMesh(i);
 
+  // Allocate a large enough Uint32Array to hold the updated indicies.
   const indices = new Uint32Array(mesh.indexCount);
-  mesh.getIndexArray(indices); // Populates indices with the mesh index data
+  mesh.getIndexArray(indices); // Populates indices with the updated mesh index data
 
   for (let j = 0; j < mesh.vertexCount; ++j) {
     const vertex = mesh.getVertex(j);
@@ -133,13 +133,9 @@ for (let i = 0; i < atlas.meshCount; ++i) {
 
     // xref gives the original vertex index associated with this new vertex.
     // Copy the attributes from the original mesh at that index.
-    const position = getPositionByIndex(vertex.xref);
-    const normal = getNormalByIndex(vertex.xref);
-
-    emitVertex(position, normal, [u, v]);
+    emitVertex(positions[vertex.xref], normals[vertex.xref], [u, v]);
   }
 }
-
 ```
 
 ### Building
@@ -155,7 +151,7 @@ npm install
 npm run build
 ```
 
-This should produce `watlas.js` and `watlas.wasm` in the `dist\` folder.
+This should produce `watlas.js`, `watlas.wasm`, and `watlas.d.ts` in the `dist\` folder.
 
 ### About xatlas
 
