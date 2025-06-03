@@ -140,7 +140,7 @@ for (let i = 0; i < atlas.meshCount; ++i) {
 
 ### Building
 
-First, make sure [emscripten is installed.](https://emscripten.org/docs/getting_started/downloads.html). watlas requires emscripten 4.0.9 or greater to support `std::optional` fields.
+First, make sure [emscripten is installed](https://emscripten.org/docs/getting_started/downloads.html). watlas requires emscripten 4.0.9 or greater to support `std::optional` fields.
 
 Also ensure that npm is installed, which is packaged with [node.js](https://nodejs.org/en)
 
@@ -153,7 +153,23 @@ npm run build
 
 This should produce `watlas.js`, `watlas.wasm`, and `watlas.d.ts` in the `dist\` folder.
 
-### About xatlas
+> **Note for WSL users**
+>
+> If you are building via Windows Subsystem for Linux (WSL) you may run into the following error message while building:
+> ```
+> error while loading shared libraries: libatomic.so.1: cannot open shared object file: No such file or directory
+> ```
+> This can be resolved by running `apt install libatomic1` to install the missing library
+
+### Testing
+
+After building, you can run the test suite by calling
+
+```
+npm run test
+```
+
+## About xatlas
 
 xatlas is a small C++11 library with no external dependencies that generates unique texture coordinates suitable for baking lightmaps or texture painting.
 
