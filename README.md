@@ -1,6 +1,6 @@
 ## watlas
 
-[![Actions Status](https://github.com/toji/watlas/workflows/build/badge.svg)](https://github.com/toji/watlas/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/toji/watlas/actions/workflows/build.yml/badge.svg)](https://github.com/toji/watlas/actions/workflows/build.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 watlas is a WebAssembly wrapper for [xatlas](https://github.com/jpcy/xatlas), making is accessible to JavaScript in browsers and node.js. The primary difference between this as and other JS wrappers like [xatlas.js](https://github.com/repalash/xatlas.js) is that this wrapper attempts to expose the native API as closely as possible. This makes it potentially harder to use compared to xatlas.js for simple cases but should be more flexible for a wider range of uses.
 
