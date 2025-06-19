@@ -1,5 +1,5 @@
 var Module = (() => {
-  
+
   return (
 async function(moduleArg = {}) {
   var moduleRtn;
@@ -51,14 +51,14 @@ function assertAddMeshSuccess(err) {
   }
 }
 
-let modulePromise;
-let module;
+let _modulePromise;
+let _module;
 export async function Initialize() {
-  if (!modulePromise) {
-    modulePromise = Module();
-    module = await modulePromise;
+  if (!_modulePromise) {
+    _modulePromise = Module();
+    _module = await _modulePromise;
   } else {
-    await modulePromise;
+    await _modulePromise;
   }
 }
 
@@ -73,10 +73,10 @@ export const ChartType = {
 export class Atlas {
   #impl;
   constructor() {
-    if (!module) {
+    if (!_module) {
       throw new Error('watlas not initialized! Call `await watlas.Initialize()` before constructing an Atlas instance.')
     }
-    this.#impl = new module.Atlas();
+    this.#impl = new _module.Atlas();
   }
 
   delete() {
